@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Preview</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/slides.css">
+    <link rel="stylesheet" href="css/slides-layout.css">
+    <link rel="stylesheet" href="css/slides-charts.css">
+    <link rel="stylesheet" href="css/slides-tables.css">
+</head>
+<body>
+    <div id="toast-container"></div>
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <p>Generating export...</p>
+    </div>
+
+    <div class="preview-container">
+        <header class="preview-header">
+            <h1 id="preview-title">Report Preview</h1>
+            <div class="header-actions">
+                <button class="btn btn-secondary" id="back-btn">← Back to Upload</button>
+                <button class="btn btn-primary" id="export-ppt-btn">Export to PowerPoint</button>
+                <button class="btn btn-primary" id="export-pdf-btn">Export to PDF</button>
+            </div>
+        </header>
+
+        <div class="slides-scroll-container" id="slide-container">
+            <!-- Slides will be dynamically generated here -->
+        </div>
+    </div>
+    <a href="#" class="back-to-top">Back to Top</a>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const backToTop = document.querySelector('.back-to-top');
+
+            // Show/hide after scrolling 300px
+            window.addEventListener('scroll', function () {
+                if (window.scrollY > 900) {
+                    backToTop.style.display = 'block';
+                } else {
+                    backToTop.style.display = 'none';
+                }
+            });
+
+            // Scroll to top
+            backToTop.addEventListener('click', function(e) {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PptxGenJS/3.12.0/pptxgen.bundle.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    
+    <!-- Utilities -->
+    <script src="js/utils/dataCalculations.js"></script>
+    <script src="js/utils/colorMapper.js"></script>
+    <script src="js/utils/LegendComponent.js"></script>
+    
+    <!-- Shared Slide Components -->
+    <script src="js/slides/components/RatingScale.js"></script>
+
+    <!-- Slide Classes -->
+    <script src="js/slides/SlideBase.js"></script>
+    <script src="js/slides/SlideFactory.js"></script>
+    <script src="js/slides/CoverSlide.js"></script>
+    <script src="js/slides/MethodologySlide.js"></script>
+    <script src="js/slides/DividerSlide.js"></script>
+    <script src="js/slides/SatisfactionSlide.js"></script>
+    <script src="js/slides/QuestionsSlide.js"></script>
+    <script src="js/slides/BarChartSlide.js"></script>
+    <script src="js/slides/HorizontalBarChartSlide.js"></script>
+    <script src="js/slides/HeatMapSlide.js"></script>
+    <script src="js/slides/RetentionIntroSlide.js"></script>
+    <script src="js/slides/ENPSIntroSlide.js"></script>
+    <script src="js/slides/ENPSSlide.js"></script>
+    <script src="js/slides/CommentsSlide.js"></script>
+    <script src="js/slides/RiskMatrixSlide.js"></script>
+    <script src="js/slides/TopBottomStatementsSlide.js"></script>
+    
+    <!-- Core Application -->
+    <script src="js/parser.js"></script>
+    <script src="js/slideGenerator.js"></script>
+    <script src="js/exporters.js"></script>
+</body>
+</html>
+
