@@ -702,6 +702,11 @@ class DataCalculations {
 
         Object.entries(columnMappings).forEach(([driver, config]) => {
             config.columns.forEach((colIndex, idx) => {
+                // Skip 10-point scale questions - they are handled separately
+                if (this.isTenPointScaleColumn(colIndex)) {
+                    return;
+                }
+
                 const questionText = this.getQuestionTextForColumn(questionRow, colIndex, driver, idx);
                 const currentScore = this.calculateAverageScore(currentRows, colIndex);
                 if (currentScore === null || currentScore === undefined) {
