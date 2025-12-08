@@ -393,6 +393,24 @@ class SlideGenerator {
             showToast(`SEACOM dimension charts error: ${error.message}`, 'error');
         }
 
+        // Ten-Point Scale Distribution Charts for Diversity & Inclusion
+        try {
+            const tenPointScaleData = DataCalculations.calculateTenPointScaleDistribution(this.reportData.data);
+            
+            tenPointScaleData.distributions.forEach(dist => {
+                this.addSlide('ten-point-scale-chart', {
+                    title: 'Diversity & Inclusion - Statement Scores',
+                    questionText: dist.questionText,
+                    distribution: dist.currentDistribution,
+                    previousDistribution: dist.previousDistribution,
+                    yearLabels: tenPointScaleData.yearLabels
+                }, container, { pageNumber: slideNumber++ });
+            });
+        } catch (error) {
+            console.error('Failed to generate 10-point scale distribution charts:', error);
+            showToast(`10-point scale charts error: ${error.message}`, 'error');
+        }
+
         // Divider Slide - Risk Matrix - Retention Risk
         this.addSlide('divider', {
             title: 'Retention Risk',

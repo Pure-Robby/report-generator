@@ -10,6 +10,7 @@ const COMMENT_COLUMNS = [78, 79, 80, 81, 82, 83, 84]; // CA, CB, CC, CD, CE, CF,
 const RETENTION_OVERALL_COLUMN = 8; // Column I
 const RETENTION_RISK1_COLUMN = 9;   // Column J
 const RETENTION_RISK2_COLUMN = 10;  // Column K
+const TEN_POINT_SCALE_COLUMNS = [65, 67]; // Columns BN and BP - 10-point scale questions in Diversity & Inclusion
 
 class DataCalculations {
     /**
@@ -1022,6 +1023,15 @@ class DataCalculations {
     }
 
     /**
+     * Check if a column uses 10-point scale
+     * @param {number} columnIndex - Column index to check
+     * @returns {boolean} True if column uses 10-point scale
+     */
+    static isTenPointScaleColumn(columnIndex) {
+        return TEN_POINT_SCALE_COLUMNS.includes(columnIndex);
+    }
+
+    /**
      * Calculate average score for a specific column across rows
      * @param {Array} rows - Array of data rows
      * @param {number} columnIndex - Column index to calculate average for
@@ -1430,6 +1440,11 @@ class DataCalculations {
             const statements = [];
             
             config.columns.forEach((colIndex) => {
+                // Skip 10-point scale questions - they will be handled separately
+                if (this.isTenPointScaleColumn(colIndex)) {
+                    return;
+                }
+
                 const questionText = this.getQuestionTextForColumn(questionRow, colIndex, dimensionName, statements.length);
                 const currentScore = this.calculateAverageScore(currentRows, colIndex);
                 
@@ -1465,6 +1480,109 @@ class DataCalculations {
         return {
             dimensions,
             yearLabels
+        };
+    }
+
+    /**
+     * Calculate distribution for 10-point scale questions
+     * Returns percentage of responses for each rating (0-10)
+     * @param {Object} excelData - Parsed Excel data
+     * @returns {Array} Array of question distribution data
+     */
+    static calculateTenPointScaleDistribution(excelData) {
+        if (!excelData || !excelData.current) {
+            throw new Error('Current year data is missing for 10-point scale distribution.');
+        }
+
+        const currentRows = this.getResponseRows(excelData.current.rows || []);
+        if (!currentRows.length) {
+            throw new Error('Current year data contains no responses for 10-point scale questions.');
+        }
+
+        const previousRows = excelData.previous && excelData.previous.rows
+            ? this.getResponseRows(excelData.previous.rows)
+            : null;
+        const hasPrevious = Boolean(previousRows && previousRows.length);
+
+        const questionRow = excelData.current.rows[0] || [];
+        const distributions = [];
+
+        TEN_POINT_SCALE_COLUMNS.forEach((colIndex) => {
+            const questionText = this.getQuestionTextForColumn(questionRow, colIndex, 'Diversity & Inclusion', 0);
+            
+            // Calculate distribution for current year
+            const currentDistribution = this.calculateRatingDistribution(currentRows, colIndex, 0, 10);
+            
+            // Calculate distribution for previous year if available
+            const previousDistribution = hasPrevious 
+                ? this.calculateRatingDistribution(previousRows, colIndex, 0, 10)
+                : null;
+
+            distributions.push({
+                questionText,
+                columnIndex: colIndex,
+                currentDistribution,
+                previousDistribution
+            });
+        });
+
+        const yearLabels = {
+            current: excelData.currentYearLabel || this.getYearLabel(excelData.current.sheetName, '2025'),
+            previous: hasPrevious
+                ? (excelData.previousYearLabel || this.getYearLabel(excelData.previous.sheetName, '2024'))
+                : null
+        };
+
+        return {
+            distributions,
+            yearLabels
+        };
+    }
+
+    /**
+     * Calculate rating distribution for a column
+     * @param {Array} rows - Response rows
+     * @param {number} columnIndex - Column index
+     * @param {number} minRating - Minimum rating (default 0)
+     * @param {number} maxRating - Maximum rating (default 10)
+     * @returns {Array} Array of {rating, count, percentage} objects
+     */
+    static calculateRatingDistribution(rows, columnIndex, minRating = 0, maxRating = 10) {
+        const ratingCounts = {};
+        let totalResponses = 0;
+
+        // Initialize counts for all ratings
+        for (let i = minRating; i <= maxRating; i++) {
+            ratingCounts[i] = 0;
+        }
+
+        // Count responses
+        rows.forEach(row => {
+            const value = row[columnIndex];
+            if (value !== null && value !== undefined && value !== '' && !isNaN(value)) {
+                const rating = Math.round(Number(value));
+                if (rating >= minRating && rating <= maxRating) {
+                    ratingCounts[rating] = (ratingCounts[rating] || 0) + 1;
+                    totalResponses++;
+                }
+            }
+        });
+
+        // Convert to array with percentages
+        const distribution = [];
+        for (let i = minRating; i <= maxRating; i++) {
+            const count = ratingCounts[i] || 0;
+            const percentage = totalResponses > 0 ? Math.round((count / totalResponses) * 100) : 0;
+            distribution.push({
+                rating: i,
+                count: count,
+                percentage: percentage
+            });
+        }
+
+        return {
+            distribution,
+            totalResponses
         };
     }
 }

@@ -102,21 +102,21 @@ class TopBottomStatementsSlide extends SlideBase {
         questionCell.textContent = statement.question;
         row.appendChild(questionCell);
 
-        const currentCell = this.createScoreCell(statement.currentScore);
+        const currentCell = this.createScoreCell(statement.currentScore, statement.columnIndex);
         row.appendChild(currentCell);
 
-        const previousCell = this.createScoreCell(statement.previousScore);
+        const previousCell = this.createScoreCell(statement.previousScore, statement.columnIndex);
         row.appendChild(previousCell);
 
         const shiftCell = document.createElement('td');
         shiftCell.className = 'shift-cell';
-        shiftCell.textContent = this.formatShiftValue(statement.shiftValue);
+        shiftCell.textContent = this.formatShiftValue(statement.shiftValue, statement.columnIndex);
         row.appendChild(shiftCell);
 
         return row;
     }
 
-    createScoreCell(score) {
+    createScoreCell(score, columnIndex = null) {
         const cell = document.createElement('td');
         if (score === null || score === undefined) {
             cell.textContent = '—';
@@ -124,19 +124,24 @@ class TopBottomStatementsSlide extends SlideBase {
             return cell;
         }
 
-        cell.textContent = `${score}%`;
+        // Check if this is a 10-point scale column (don't add %)
+        const isTenPoint = columnIndex !== null && DataCalculations.isTenPointScaleColumn(columnIndex);
+        cell.textContent = isTenPoint ? score.toString() : `${score}%`;
         cell.className = `score-cell ${ColorMapper.getCellClass(score, 'engagement')}`;
         return cell;
     }
 
-    formatShiftValue(shiftValue) {
+    formatShiftValue(shiftValue, columnIndex = null) {
         if (shiftValue === null || shiftValue === undefined) {
             return '—';
         }
         if (shiftValue === 0) {
             return '–';
         }
-        return `${shiftValue > 0 ? '+' : ''}${shiftValue}%`;
+        // Check if this is a 10-point scale column (don't add %)
+        const isTenPoint = columnIndex !== null && DataCalculations.isTenPointScaleColumn(columnIndex);
+        const sign = shiftValue > 0 ? '+' : '';
+        return isTenPoint ? `${sign}${shiftValue}` : `${sign}${shiftValue}%`;
     }
 
     exportToPPT(pptx) {
@@ -171,12 +176,20 @@ class TopBottomStatementsSlide extends SlideBase {
         ];
 
         [...this.data.topStatements, ...this.data.bottomStatements].forEach(statement => {
+            const isTenPoint = statement.columnIndex !== undefined && DataCalculations.isTenPointScaleColumn(statement.columnIndex);
+            const currentScoreText = statement.currentScore !== null 
+                ? (isTenPoint ? statement.currentScore.toString() : `${statement.currentScore}%`)
+                : '—';
+            const previousScoreText = statement.previousScore !== null 
+                ? (isTenPoint ? statement.previousScore.toString() : `${statement.previousScore}%`)
+                : '—';
+            
             const row = [
                 { text: statement.driver, options: { align: 'left' } },
                 { text: statement.question, options: { align: 'left' } },
-                { text: statement.currentScore !== null ? `${statement.currentScore}%` : '—' },
-                { text: statement.previousScore !== null ? `${statement.previousScore}%` : '—' },
-                { text: this.formatShiftValue(statement.shiftValue) }
+                { text: currentScoreText },
+                { text: previousScoreText },
+                { text: this.formatShiftValue(statement.shiftValue, statement.columnIndex) }
             ];
             tableData.push(row);
         });
