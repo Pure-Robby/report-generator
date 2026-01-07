@@ -267,65 +267,6 @@ class HorizontalBarChartSlide extends SlideBase {
         this.chartInstance = new Chart(ctx, config);
     }
 
-    exportToPPT(pptx) {
-        const slide = pptx.addSlide();
-
-        slide.addText(this.data.title, {
-            x: 0.5,
-            y: 0.5,
-            w: 9,
-            h: 0.7,
-            fontSize: 28,
-            bold: true,
-            color: '1e293b'
-        });
-
-        slide.addShape(pptx.ShapeType.rect, {
-            x: 0.5,
-            y: 1.2,
-            w: 9,
-            h: 0.05,
-            fill: { color: '667eea' }
-        });
-
-        const statements = this.data.statements || [];
-        const hasPreviousData = statements.some(s => s.previousScore !== null);
-
-        const chartData = [];
-        statements.forEach((stmt) => {
-            const item = {
-                name: stmt.text,
-                labels: [this.data.yearLabels?.current || 'Current Year'],
-                values: [stmt.currentScore]
-            };
-
-            if (hasPreviousData && stmt.previousScore !== null) {
-                item.labels.push(this.data.yearLabels?.previous || 'Previous Year');
-                item.values.push(stmt.previousScore);
-            }
-
-            chartData.push(item);
-        });
-
-        slide.addChart(pptx.ChartType.bar, chartData, {
-            x: 0.5,
-            y: 1.5,
-            w: 9,
-            h: 4.5,
-            barDir: 'bar',
-            barGrouping: hasPreviousData ? 'clustered' : 'standard',
-            chartColors: hasPreviousData
-                ? [ColorMapper.COLORS.chart.primary, ColorMapper.COLORS.chart.secondary]
-                : [ColorMapper.COLORS.chart.primary],
-            showLegend: hasPreviousData,
-            legendPos: 'b',
-            showValue: true,
-            valAxisMaxVal: 100
-        });
-
-        return slide;
-    }
-
     /**
      * Calculate bar thickness based on number of statements
      * More statements = thinner bars, fewer statements = thicker bars

@@ -84,63 +84,6 @@ class ENPSIntroSlide extends SlideBase {
             container.appendChild(sectionEl);
         });
     }
-
-    exportToPPT(pptx) {
-        const slide = pptx.addSlide();
-
-        slide.addText(this.data.title, {
-            x: 0.5,
-            y: 0.5,
-            w: 9,
-            h: 0.7,
-            fontSize: 28,
-            bold: true,
-            color: '1e293b'
-        });
-
-        slide.addShape(pptx.ShapeType.rect, {
-            x: 0.5,
-            y: 1.2,
-            w: 9,
-            h: 0.05,
-            fill: { color: '667eea' }
-        });
-
-        const textBlocks = [
-            {
-                title: 'What is eNPS?',
-                content: 'The Employee Net Promoter Score (eNPS) measures employee satisfaction and loyalty. Employees answer: "On a scale of 0 to 10, how likely are you to recommend our company as a place to work?"'
-            },
-            {
-                title: 'How are employees classified?',
-                content: 'Promoters (9-10) enthusiastically recommend the employer. Passives (7-8) are generally satisfied. Detractors (0-6) are dissatisfied and may discourage others.'
-            },
-            {
-                title: 'How is eNPS calculated?',
-                content: 'Percentage of detractors is subtracted from percentage of promoters. Scores range from -100 (all detractors) to 100 (all promoters).'
-            },
-            {
-                title: 'What is a “good” eNPS score?',
-                content: 'Scores from 0-30 are good; above 30 are excellent, indicating strong satisfaction and loyalty.'
-            }
-        ];
-
-        let currentY = 1.4;
-        textBlocks.forEach(block => {
-            slide.addText(`${block.title}\n${block.content}`, {
-                x: 0.5,
-                y: currentY,
-                w: 9,
-                h: 1,
-                fontSize: 13,
-                color: '1e293b',
-                lineSpacing: 18
-            });
-            currentY += 1.05;
-        });
-
-        return slide;
-    }
 }
 
 SlideFactory.register('enps-intro', ENPSIntroSlide);

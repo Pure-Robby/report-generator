@@ -23,16 +23,6 @@ class SlideBase {
   }
 
   /**
-   * Export slide to PowerPoint
-   * Must be implemented by subclasses
-   * @param {Object} pptx - PptxGenJS instance
-   * @returns {Object} PPT slide
-   */
-  exportToPPT(pptx) {
-    throw new Error('exportToPPT() must be implemented by subclass');
-  }
-
-  /**
    * Get or create the slide element
    * @returns {HTMLElement}
    */

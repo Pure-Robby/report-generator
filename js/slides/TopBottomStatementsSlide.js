@@ -143,66 +143,6 @@ class TopBottomStatementsSlide extends SlideBase {
         const sign = shiftValue > 0 ? '+' : '';
         return isTenPoint ? `${sign}${shiftValue}` : `${sign}${shiftValue}%`;
     }
-
-    exportToPPT(pptx) {
-        const slide = pptx.addSlide();
-
-        slide.addText(this.data.title, {
-            x: 0.5,
-            y: 0.5,
-            w: 9,
-            h: 0.7,
-            fontSize: 28,
-            bold: true,
-            color: '1e293b'
-        });
-
-        slide.addShape(pptx.ShapeType.rect, {
-            x: 0.5,
-            y: 1.2,
-            w: 9,
-            h: 0.05,
-            fill: { color: '3b82f6' }
-        });
-
-        const tableData = [
-            [
-                { text: 'Core Drivers', options: { bold: true, fill: '1e293b', color: 'FFFFFF' } },
-                { text: 'Question', options: { bold: true, fill: '1e293b', color: 'FFFFFF' } },
-                { text: `${this.data.yearLabels.current} Score`, options: { bold: true, fill: '1e293b', color: 'FFFFFF' } },
-                { text: `${this.data.yearLabels.previous || '2024'} Score`, options: { bold: true, fill: '1e293b', color: 'FFFFFF' } },
-                { text: '% Shift', options: { bold: true, fill: '1e293b', color: 'FFFFFF' } }
-            ]
-        ];
-
-        [...this.data.topStatements, ...this.data.bottomStatements].forEach(statement => {
-            const isTenPoint = statement.columnIndex !== undefined && DataCalculations.isTenPointScaleColumn(statement.columnIndex);
-            const currentScoreText = statement.currentScore !== null 
-                ? (isTenPoint ? statement.currentScore.toString() : `${statement.currentScore}%`)
-                : '—';
-            const previousScoreText = statement.previousScore !== null 
-                ? (isTenPoint ? statement.previousScore.toString() : `${statement.previousScore}%`)
-                : '—';
-            
-            const row = [
-                { text: statement.driver, options: { align: 'left' } },
-                { text: statement.question, options: { align: 'left' } },
-                { text: currentScoreText },
-                { text: previousScoreText },
-                { text: this.formatShiftValue(statement.shiftValue, statement.columnIndex) }
-            ];
-            tableData.push(row);
-        });
-
-        slide.addTable(tableData, {
-            x: 0.5,
-            y: 1.5,
-            w: 9,
-            fontSize: 12,
-            colW: [1.5, 4.5, 1.2, 1.2, 0.9],
-            border: { pt: 1, color: 'e2e8f0' }
-        });
-    }
 }
 
 SlideFactory.register('top-bottom-statements', TopBottomStatementsSlide);

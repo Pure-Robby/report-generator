@@ -92,42 +92,6 @@ class MethodologySlide extends SlideBase {
         return body;
     }
 
-
-    exportToPPT(pptx) {
-        const slide = pptx.addSlide();
-        
-        // Title
-        slide.addText(this.data.title, {
-            x: 0.5,
-            y: 0.5,
-            w: 9,
-            h: 0.7,
-            fontSize: 28,
-            bold: true,
-            color: '1e293b'
-        });
-        
-        // Underline
-        slide.addShape(pptx.ShapeType.rect, {
-            x: 0.5,
-            y: 1.2,
-            w: 9,
-            h: 0.05,
-            fill: { color: '667eea' }
-        });
-        
-        // Methodology text
-        slide.addText(this.data.methodology, {
-            x: 0.5,
-            y: 1.5,
-            w: 9,
-            h: 4.5,
-            fontSize: 18,
-            color: '1e293b'
-        });
-        return slide;
-    }
-
 }
 
 // Register slide type

@@ -558,9 +558,9 @@ table thead th {
 }
 
 .enps-icon-header img {
-  width: 28px;
+  width: 33px;
   height: 28px;
-  object-fit: contain;
+  /* object-fit: contain; */
   display: block;
   margin: 0 auto;
 }
@@ -579,25 +579,25 @@ table thead th {
 }
 
 .enps-overall-row .enps-overall-highlight {
-  background: #1d4ed8;
+  background: #1d4ed8 !important;
   color: #ffffff;
   font-weight: 600;
 }
 
 .enps-cell-detractors {
-  background: #fe0000;
+  background: #fe0000 !important;
   color: #ffffff;
   font-weight: 600;
 }
 
 .enps-cell-passives {
-  background: #ffc000;
+  background: #ffc000 !important;
   color: #000000;
   font-weight: 600;
 }
 
 .enps-cell-promoters {
-  background: #00af50;
+  background: #00af50 !important;
   color: #ffffff;
   font-weight: 600;
 }

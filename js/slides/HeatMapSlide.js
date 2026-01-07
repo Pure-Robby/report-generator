@@ -299,43 +299,6 @@ class HeatMapSlide extends SlideBase {
         
         row.appendChild(td);
     }
-
-    exportToPPT(pptx) {
-        const slide = pptx.addSlide();
-        
-        // Title
-        slide.addText(this.data.title, {
-            x: 0.5,
-            y: 0.5,
-            w: 9,
-            h: 0.7,
-            fontSize: 28,
-            bold: true,
-            color: '1e293b'
-        });
-        
-        // Underline
-        slide.addShape(pptx.ShapeType.rect, {
-            x: 0.5,
-            y: 1.2,
-            w: 9,
-            h: 0.05,
-            fill: { color: '667eea' }
-        });
-        
-        // Note: Simplified PPT export - full table export would be complex
-        // Add a note that detailed table is in HTML version
-        slide.addText('Detailed heatmap table available in HTML preview', {
-            x: 0.5,
-            y: 2,
-            w: 9,
-            h: 0.5,
-            fontSize: 14,
-            color: '64748b'
-        });
-        
-        return slide;
-    }
 }
 
 // Register slide type

@@ -1,52 +1,6 @@
 // Export functions for PPT and PDF
 
 /**
- * Convert an image file to base64 data URL
- * @param {string} imagePath - Path to the image file
- * @returns {Promise<string>} Base64 data URL
- */
-async function imageToBase64(imagePath) {
-    // First try to fetch as blob (works for HTTP/HTTPS)
-    try {
-        const response = await fetch(imagePath);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const blob = await response.blob();
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = () => reject(new Error(`Failed to read image file: ${imagePath}`));
-            reader.readAsDataURL(blob);
-        });
-    } catch (fetchError) {
-        // If fetch fails, try using Image element with canvas (works for some local scenarios)
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            
-            img.onload = function() {
-                try {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0);
-                    const dataURL = canvas.toDataURL('image/jpeg', 0.9);
-                    resolve(dataURL);
-                } catch (error) {
-                    reject(new Error(`Failed to convert image to base64: ${error.message}`));
-                }
-            };
-            
-            img.onerror = function() {
-                reject(new Error(`Failed to load image: ${imagePath}. Fetch error: ${fetchError.message}`));
-            };
-            
-            img.src = imagePath;
-        });
-    }
-}
-
-/**
  * Capture a slide element as an image using html2canvas
  * @param {HTMLElement} slideElement - The slide DOM element to capture
  * @returns {Promise<string>} Base64 data URL of the captured image

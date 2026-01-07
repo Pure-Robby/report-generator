@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PPT Report Generator</title>
+    <link rel="icon" href="assets/favicon.ico" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -26,7 +27,7 @@
             <form id="upload-form" class="upload-form">
                 <div class="form-group">
                     <label for="survey-name">Survey Name *</label>
-                    <input type="text" id="survey-name" name="surveyName" required placeholder="e.g., Customer Satisfaction Survey 2025">
+                    <input type="text" id="survey-name" name="surveyName" required placeholder="e.g., Customer Satisfaction Survey 2026">
                 </div>
 
                 <div class="form-group">
@@ -35,7 +36,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="excel-file">Excel File *</label>
+                    <label for="excel-file">Excel File * <small class="text-muted">(Supports .xlsx and .xls formats)</small></label>
                     <div class="file-input-wrapper">
                         <input type="file" id="excel-file" name="excelFile" accept=".xlsx,.xls" required>
                         <span class="file-name">No file selected</span>
@@ -49,7 +50,7 @@
         </main>
 
         <footer>
-            <p>Supports .xlsx and .xls formats</p>
+            <p>©2026 PPT Report Generator. All rights reserved.</p>
         </footer>
     </div>
     

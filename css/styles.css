@@ -94,7 +94,13 @@ body {
 .align-items-center {
   align-items: center;
 }
-
+small {
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+.text-muted {
+  color: var(--secondary-color);
+}
 .p-1 {
   padding: 0.25rem;
 }
