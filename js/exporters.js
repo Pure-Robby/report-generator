@@ -5,6 +5,22 @@
  * @param {HTMLElement} slideElement - The slide DOM element to capture
  * @returns {Promise<string>} Base64 data URL of the captured image
  */
+
+function setExportGuard(enabled) {
+    const handler = (e) => {
+        e.preventDefault();
+        e.returnValue = '';
+    };
+
+    if (enabled) {
+        window.addEventListener('beforeunload', handler);
+        window.__exportBeforeUnloadHandler = handler;
+    } else if (window.__exportBeforeUnloadHandler) {
+        window.removeEventListener('beforeunload', window.__exportBeforeUnloadHandler);
+        window.__exportBeforeUnloadHandler = null;
+    }
+}
+
 async function captureSlideAsImage(slideElement) {
     if (typeof html2canvas === 'undefined') {
         throw new Error('html2canvas library is not loaded. Please check the HTML file.');
@@ -13,10 +29,10 @@ async function captureSlideAsImage(slideElement) {
     // Store original scroll position and styles
     const originalScrollY = window.scrollY;
     const originalScrollX = window.scrollX;
-    const originalPosition = slideElement.style.position;
-    const originalTop = slideElement.style.top;
-    const originalLeft = slideElement.style.left;
-    const originalZIndex = slideElement.style.zIndex;
+    // const originalPosition = slideElement.style.position;
+    // const originalTop = slideElement.style.top;
+    // const originalLeft = slideElement.style.left;
+    // const originalZIndex = slideElement.style.zIndex;
     
     // Store original styles for elements we'll modify
     const originalStyles = {
@@ -35,11 +51,11 @@ async function captureSlideAsImage(slideElement) {
     
     // Temporarily position element at top of viewport for capture
     // Position at left: 0 to ensure full capture, but ensure viewport is wide enough
-    slideElement.style.position = 'fixed';
-    slideElement.style.top = '0';
-    slideElement.style.left = '0';
-    slideElement.style.zIndex = '1'; // Below overlay
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // slideElement.style.position = 'fixed';
+    // slideElement.style.top = '0';
+    // slideElement.style.left = '0';
+    // slideElement.style.zIndex = '1'; // Below overlay
+    //await new Promise(resolve => setTimeout(resolve, 200));
     
     // Get natural dimensions - verify element is actually visible
     const rect = slideElement.getBoundingClientRect();
@@ -205,32 +221,53 @@ async function captureSlideAsImage(slideElement) {
                        element.id === 'export-thumbnails';
             },
             onclone: (clonedDoc, element) => {
-                // Only handle background images in clone (html2canvas may not preserve CSS backgrounds)
-                // Everything else is fixed in original DOM
-                const elementsWithBg = element.querySelectorAll('.slide-title, .slide-divider');
+                // IMPORTANT: `element` is the cloned version of `slideElement`
+                const clonedSlide = element;
+            
+                // Make the cloned document predictable
+                clonedDoc.documentElement.style.width = 'auto';
+                clonedDoc.documentElement.style.height = 'auto';
+                clonedDoc.body.style.margin = '0';
+                clonedDoc.body.style.padding = '0';
+                clonedDoc.body.style.overflow = 'hidden';
+            
+                // Remove UI in clone (belt & braces – you already ignore some too)
+                clonedDoc.getElementById('loading-overlay')?.remove();
+                clonedDoc.querySelector('.preview-header')?.remove();
+                clonedDoc.querySelector('.back-to-top')?.remove();
+                clonedDoc.getElementById('toast-container')?.remove();
+                clonedDoc.getElementById('export-thumbnails')?.remove();
+            
+                // Put ONLY the cloned slide at top-left for capture
+                clonedSlide.style.position = 'fixed';
+                clonedSlide.style.left = '0';
+                clonedSlide.style.top = '0';
+                clonedSlide.style.margin = '0';
+                clonedSlide.style.transform = 'none';
+                clonedSlide.style.zIndex = '1';
+            
+                // ---- keep your existing background-image preservation logic below ----
+                const elementsWithBg = clonedSlide.querySelectorAll('.slide-title, .slide-divider');
                 elementsWithBg.forEach(el => {
-                    // Find matching element in original
                     const classMatch = Array.from(slideElement.querySelectorAll('*')).find(orig => {
                         return orig.classList.contains(el.classList[0]);
                     });
-                    
+            
                     if (classMatch) {
                         const computedStyle = window.getComputedStyle(classMatch);
                         if (computedStyle.backgroundImage && computedStyle.backgroundImage !== 'none') {
-                            // Extract URL from background-image (handles url("...") format)
                             const bgImage = computedStyle.backgroundImage;
-                            // Ensure the background image is set with all properties
                             el.style.backgroundImage = bgImage;
                             el.style.backgroundSize = computedStyle.backgroundSize || 'cover';
                             el.style.backgroundPosition = computedStyle.backgroundPosition || 'center center';
                             el.style.backgroundRepeat = computedStyle.backgroundRepeat || 'no-repeat';
                             el.style.backgroundAttachment = 'scroll';
-                            // Force reflow to ensure background loads
                             void el.offsetHeight;
                         }
                     }
                 });
             }
+            
         });
 
         // Verify canvas has content
@@ -261,10 +298,10 @@ async function captureSlideAsImage(slideElement) {
         return imageDataUrl;
     } finally {
         // Restore element position and styles
-        slideElement.style.position = originalPosition;
-        slideElement.style.top = originalTop;
-        slideElement.style.left = originalLeft;
-        slideElement.style.zIndex = originalZIndex;
+        // slideElement.style.position = originalPosition;
+        // slideElement.style.top = originalTop;
+        // slideElement.style.left = originalLeft;
+        // slideElement.style.zIndex = originalZIndex;
         slideElement.style.width = '';
         slideElement.style.maxWidth = '';
         slideElement.style.minWidth = '';
@@ -301,213 +338,160 @@ async function captureSlideAsImage(slideElement) {
 async function exportToPPT(reportData, slideInstances) {
     showLoading();
 
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const loadingText = loadingOverlay?.querySelector('p');
+    const progressBar = document.getElementById('export-progress'); // optional
+    const exportThumb = document.getElementById('export-thumb');    // single thumbnail
+    const cancelBtn = document.getElementById('cancel-export');     // optional
+
+    // Cancel support (optional)
+    let exportCancelled = false;
+    if (cancelBtn) {
+        cancelBtn.onclick = () => {
+            exportCancelled = true;
+            if (loadingText) loadingText.textContent = 'Cancelling export...';
+        };
+    }
+
+    // UI elements to hide during export
+    const header = document.querySelector('.preview-header');
+    const backToTop = document.querySelector('.back-to-top');
+    const toastContainer = document.getElementById('toast-container');
+
+    const originalHeaderDisplay = header ? header.style.display : '';
+    const originalBackToTopDisplay = backToTop ? backToTop.style.display : '';
+    const originalToastDisplay = toastContainer ? toastContainer.style.display : '';
+
     try {
-        // Check if html2canvas is available
+        // Library checks
         if (typeof html2canvas === 'undefined') {
-            throw new Error('html2canvas library is not loaded. Please check the HTML file.');
+            throw new Error('html2canvas library is not loaded.');
         }
 
-        // Check if PptxGenJS is available, wait for it if needed
         if (typeof PptxGenJS === 'undefined') {
-            // Try alternative global names
             if (typeof pptxgen !== 'undefined') {
                 window.PptxGenJS = pptxgen;
             } else {
-                // Wait for library to load (max 5 seconds)
-                await new Promise((resolve, reject) => {
-                    let attempts = 0;
-                    const maxAttempts = 50;
-                    const checkLibrary = () => {
-                        // Check for PptxGenJS or alternative names
-                        if (typeof PptxGenJS !== 'undefined') {
-                            resolve();
-                        } else if (typeof pptxgen !== 'undefined') {
-                            window.PptxGenJS = pptxgen;
-                            resolve();
-                        } else if (typeof window.PptxGenJS !== 'undefined') {
-                            resolve();
-                        } else if (attempts < maxAttempts) {
-                            attempts++;
-                            setTimeout(checkLibrary, 100);
-                        } else {
-                            // Check if script tag exists and provide helpful error
-                            const scriptTag = document.querySelector('script[src*="pptxgen"]');
-                            if (!scriptTag) {
-                                reject(new Error('PptxGenJS script tag not found. Please check the HTML file.'));
-                            } else if (scriptTag.onerror || scriptTag.getAttribute('data-error')) {
-                                reject(new Error('PptxGenJS failed to load from CDN. Please check your internet connection or try refreshing the page.'));
-                            } else {
-                                reject(new Error('PptxGenJS library failed to load. The script may still be loading. Please wait a moment and try again, or refresh the page.'));
-                            }
-                        }
-                    };
-                    checkLibrary();
-                });
+                throw new Error('PptxGenJS library is not loaded.');
             }
         }
 
         const pptx = new PptxGenJS();
-        
-        // Set presentation properties
         pptx.layout = 'LAYOUT_16x9';
         pptx.author = 'PPT Report Generator';
         pptx.title = reportData.reportName;
         pptx.subject = reportData.surveyName;
 
-        // Get all slide elements from the DOM
         const slideElements = document.querySelectorAll('.slide');
-        
-        if (slideElements.length === 0) {
-            throw new Error('No slides found in the document. Please ensure slides have been generated.');
+        if (!slideElements.length) {
+            throw new Error('No slides found to export.');
         }
 
-        // Hide UI elements that shouldn't be in the capture (but keep loading overlay visible)
-        const header = document.querySelector('.preview-header');
-        const backToTop = document.querySelector('.back-to-top');
-        const toastContainer = document.getElementById('toast-container');
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const loadingText = loadingOverlay?.querySelector('p');
-        
-        const originalHeaderDisplay = header ? header.style.display : '';
-        const originalBackToTopDisplay = backToTop ? backToTop.style.display : '';
-        const originalToastDisplay = toastContainer ? toastContainer.style.display : '';
-
+        // Hide non-export UI
         if (header) header.style.display = 'none';
         if (backToTop) backToTop.style.display = 'none';
         if (toastContainer) toastContainer.style.display = 'none';
-        // Keep loading overlay visible throughout the process
-        // Ensure overlay is on top and covers everything
+
+        // Ensure overlay is on top
         if (loadingOverlay) {
-            loadingOverlay.style.zIndex = '99999'; // Very high z-index
-            loadingOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.85)'; // More opaque
+            loadingOverlay.style.zIndex = '99999';
         }
 
-        // Create thumbnail container for current slide preview (optional - can be disabled for performance)
-        // Set to false to disable thumbnails and improve performance
-        const SHOW_THUMBNAILS = true;
-        let thumbnailContainer = null;
-        let currentThumbnail = null;
-        
-        if (loadingOverlay && SHOW_THUMBNAILS) {
-            thumbnailContainer = document.createElement('div');
-            thumbnailContainer.id = 'export-thumbnails';
-            thumbnailContainer.style.cssText = `
-                margin-top: 1.5rem;
-                display: flex;
-                justify-content: center;
-            `;
-            loadingOverlay.appendChild(thumbnailContainer);
-        }
+        // Initial UI state
+        if (loadingText) loadingText.textContent = 'Preparing export...';
+        if (progressBar) progressBar.style.width = '0%';
+        if (exportThumb) exportThumb.src = '';
 
-        try {
+        // Ensure slides are rendered
+        slideElements.forEach((slide, index) => {
+            slide.style.display = 'flex';
+            slide.style.visibility = 'visible';
+            if (!slide.dataset.slideId) {
+                slide.dataset.slideId = `slide-${index}`;
+            }
+        });
+
+        // Small delay to allow charts/layouts to settle
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // ---- MAIN EXPORT LOOP ----
+        for (let i = 0; i < slideElements.length; i++) {
+            if (exportCancelled) {
+                throw new Error('Export cancelled by user');
+            }
+
+            const slideElement = slideElements[i];
+
             // Update loading message
             if (loadingText) {
-                loadingText.textContent = `Preparing export...`;
+                loadingText.textContent =
+                    `Processing slide ${i + 1} of ${slideElements.length}...`;
             }
 
-            // Ensure all slides are visible and charts are rendered
-            slideElements.forEach((slide, index) => {
-                slide.style.display = 'flex';
-                slide.style.visibility = 'visible';
-                // Add data attribute for identification
-                if (!slide.dataset.slideId) {
-                    slide.dataset.slideId = `slide-${index}`;
+            // Update progress bar
+            if (progressBar) {
+                const pct = Math.round(((i + 1) / slideElements.length) * 100);
+                progressBar.style.width = `${pct}%`;
+            }
+
+            try {
+                // Capture slide
+                const imageData = await captureSlideAsImage(slideElement);
+
+                // ✅ Update SINGLE thumbnail element
+                if (exportThumb) {
+                    exportThumb.src = imageData;
                 }
-            });
 
-            // Wait a bit for charts to fully render
-            await new Promise(resolve => setTimeout(resolve, 500));
+                // Add slide to PPT
+                const pptSlide = pptx.addSlide();
+                pptSlide.addImage({
+                    data: imageData,
+                    x: 0,
+                    y: 0,
+                    w: 10,
+                    h: 5.625
+                });
 
-            // Capture each slide as an image and add to PPT
-            for (let i = 0; i < slideElements.length; i++) {
-                const slideElement = slideElements[i];
-                
-                try {
-                    // Update loading message
-                    if (loadingText) {
-                        loadingText.textContent = `Processing slide ${i + 1} of ${slideElements.length}...`;
-                    }
-
-                    // Capture slide as image
-                    const imageData = await captureSlideAsImage(slideElement);
-                    
-                    // Show only current slide thumbnail (replace previous if exists)
-                    if (thumbnailContainer) {
-                        // Remove previous thumbnail
-                        if (currentThumbnail && currentThumbnail.parentNode) {
-                            currentThumbnail.parentNode.removeChild(currentThumbnail);
-                        }
-                        
-                        // Create new thumbnail for current slide
-                        currentThumbnail = document.createElement('div');
-                        currentThumbnail.style.cssText = `
-                            width: 120px;
-                            height: 67.5px;
-                            border: 2px solid rgba(255, 255, 255, 0.3);
-                            border-radius: 4px;
-                            overflow: hidden;
-                            background: white;
-                        `;
-                        const thumbnailImg = document.createElement('img');
-                        thumbnailImg.src = imageData;
-                        thumbnailImg.style.cssText = `
-                            width: 100%;
-                            height: 100%;
-                            object-fit: contain;
-                        `;
-                        currentThumbnail.appendChild(thumbnailImg);
-                        thumbnailContainer.appendChild(currentThumbnail);
-                    }
-                    
-                    // Create PPT slide and add image
-                    // PPT 16:9 layout is 10" x 5.625" (960pt x 540pt)
-                    // Our slides are 1280x720 pixels, so we maintain aspect ratio
-                    const slide = pptx.addSlide();
-                    slide.addImage({
-                        data: imageData,
-                        x: 0,
-                        y: 0,
-                        w: 10,  // 10 inches wide (full slide width)
-                        h: 5.625 // 5.625 inches tall (16:9 aspect ratio)
-                    });
-                } catch (error) {
-                    console.error(`Error capturing slide ${i + 1}:`, error);
-                    // Continue with next slide even if one fails
-                }
+            } catch (slideError) {
+                console.error(`Error capturing slide ${i + 1}:`, slideError);
+                // Continue exporting remaining slides
             }
-
-            // Update loading message for final step
-            if (loadingText) {
-                loadingText.textContent = `Finalising PowerPoint file...`;
-            }
-        } finally {
-            // Remove thumbnail container and current thumbnail
-            if (currentThumbnail && currentThumbnail.parentNode) {
-                currentThumbnail.parentNode.removeChild(currentThumbnail);
-            }
-            if (thumbnailContainer && thumbnailContainer.parentNode) {
-                thumbnailContainer.parentNode.removeChild(thumbnailContainer);
-            }
-            
-            // Restore UI elements
-            if (header) header.style.display = originalHeaderDisplay;
-            if (backToTop) backToTop.style.display = originalBackToTopDisplay;
-            if (toastContainer) toastContainer.style.display = originalToastDisplay;
         }
 
-        // Save the presentation
-        const fileName = `${reportData.reportName.replace(/[^a-z0-9]/gi, '_')}.pptx`;
+        // Finalise
+        if (loadingText) loadingText.textContent = 'Finalising PowerPoint file...';
+
+        const fileName =
+            `${reportData.reportName.replace(/[^a-z0-9]/gi, '_')}.pptx`;
+
         await pptx.writeFile({ fileName });
 
-        hideLoading();
         showToast('PowerPoint exported successfully!', 'success');
 
     } catch (error) {
         console.error('Error exporting to PPT:', error);
+
+        if (error.message === 'Export cancelled by user') {
+            showToast('Export cancelled', 'info');
+        } else {
+            showToast('Error exporting to PowerPoint: ' + error.message, 'error');
+        }
+
+    } finally {
+        // ✅ ALWAYS restore state and TURN OFF GUARD
+        try { setExportGuard(false); } catch (_) {}
+        document.body.classList.remove('exporting');
+
+        if (header) header.style.display = originalHeaderDisplay;
+        if (backToTop) backToTop.style.display = originalBackToTopDisplay;
+        if (toastContainer) toastContainer.style.display = originalToastDisplay;
+
         hideLoading();
-        showToast('Error exporting to PowerPoint: ' + error.message, 'error');
     }
 }
+
+
 
 // Export to PDF
 function exportToPDF(reportData) {

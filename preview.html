@@ -17,9 +17,24 @@
 <body>
     <div id="toast-container"></div>
     <div id="loading-overlay" class="loading-overlay hidden">
-        <div class="spinner"></div>
-        <p>Generating export...</p>
-    </div>
+        <div class="overlay-panel">
+          <div class="spinner"></div>
+      
+          <p id="loading-text">Processing your file...</p>
+      
+          <div class="progress">
+            <div id="export-progress" class="progress-bar"></div>
+          </div>
+      
+          <div class="thumb-wrap">
+            <img id="export-thumb" alt="Current slide preview" />
+          </div>
+      
+          <button id="cancel-export" class="btn btn-sm btn-outline-light">
+            Cancel export
+          </button>
+        </div>
+      </div>
 
     <div class="preview-container">
         <header class="preview-header">

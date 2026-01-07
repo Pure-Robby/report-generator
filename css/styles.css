@@ -29,6 +29,21 @@ body {
   min-height: 100vh;
 }
 
+/*Prevent user interaction during export*/
+body.exporting .preview-header,
+body.exporting .back-to-top {
+  pointer-events: none;
+}
+
+body.exporting #reportRoot { /* change selector to your main container */
+  pointer-events: none;
+  user-select: none;
+}
+
+body.exporting #loading-overlay {
+  pointer-events: auto; /* overlay still clickable */
+}
+
 /*Utility Classes*/
 .w-25 {
   width: 25%;
@@ -358,6 +373,42 @@ footer {
   color: white;
   margin-top: 1rem;
   font-size: 1.125rem;
+}
+
+.overlay-panel{
+  width:320px;
+  text-align:center;
+  color:#fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress{
+  height:6px;
+  background:rgba(255,255,255,0.2);
+  border-radius:4px;
+  margin:12px 0;
+  overflow:hidden;
+  width:100%;
+}
+
+.progress-bar{
+  height:100%;
+  width:0%;
+  background:#38bdf8;
+  transition:width 0.2s linear;
+}
+
+.thumb-wrap{
+  margin:1rem 0;
+}
+
+.thumb-wrap img{
+  width:160px;
+  border-radius:4px;
+  background:#0f172a;
 }
 
 .spinner {
