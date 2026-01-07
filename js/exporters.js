@@ -473,7 +473,7 @@ async function exportToPPT(reportData, slideInstances) {
         console.error('Error exporting to PPT:', error);
 
         if (error.message === 'Export cancelled by user') {
-            showToast('Export cancelled', 'info');
+            showToast('Export cancelled', 'error');
         } else {
             showToast('Error exporting to PowerPoint: ' + error.message, 'error');
         }

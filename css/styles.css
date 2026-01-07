@@ -342,6 +342,11 @@ header p {
   color: var(--primary-color);
 }
 
+.btn-danger {
+  background-color: var(--error-color);
+  color: white;
+}
+
 /* Footer */
 footer {
   text-align: center;
