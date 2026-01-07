@@ -3,40 +3,22 @@
  * Used on question and intro slides to keep visuals consistent.
  */
 class RatingScaleComponent {
-    /**
-     * Create the rating scale table element.
-     * @returns {HTMLTableElement}
-     */
-    static createTable() {
-        const table = document.createElement('table');
-        table.className = 'rating-scale';
+  /**
+   * Create the rating scale element.
+   * @returns {HTMLTableElement}
+   */
+  static createTable() {
+    const ratingScale = document.createElement('div');
+    ratingScale.className = 'rating-scale';
 
-        const thead = document.createElement('thead');
-        thead.innerHTML = `
-            <tr>
-                <th>STRONGLY DISAGREE</th>
-                <th>DISAGREE</th>
-                <th>NEUTRAL</th>
-                <th>AGREE</th>
-                <th>STRONGLY AGREE</th>
-            </tr>
+    ratingScale.innerHTML = `
+            <div><span class="fw-semibold">STRONGLY DISAGREE:</span><span>0%</span></div>
+            <div><span class="fw-semibold">DISAGREE:</span><span>25%</span></div>
+            <div><span class="fw-semibold">NEUTRAL:</span><span>50%</span></div>
+            <div><span class="fw-semibold">AGREE:</span><span>75%</span></div>
+            <div><span class="fw-semibold">STRONGLY AGREE:</span><span>100%</span></div>
         `;
-        table.appendChild(thead);
 
-        const tbody = document.createElement('tbody');
-        tbody.innerHTML = `
-            <tr>
-                <td>0%</td>
-                <td>25%</td>
-                <td>50%</td>
-                <td>75%</td>
-                <td>100%</td>
-            </tr>
-        `;
-        table.appendChild(tbody);
-
-        return table;
-    }
+    return ratingScale;
+  }
 }
-
-

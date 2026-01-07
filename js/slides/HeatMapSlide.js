@@ -146,7 +146,10 @@ class HeatMapSlide extends SlideBase {
         additionalDimensions.forEach(dim => {
             const th = document.createElement('th');
             th.className = 'vertical-text';
-            th.innerHTML = `<div class="text-wrapper">${dim}</div>`;
+            const verticalTextContainer = document.createElement('div');
+            verticalTextContainer.className = 'vertical-text-container';
+            th.appendChild(verticalTextContainer);
+            verticalTextContainer.innerHTML = `<div class="text-wrapper">${dim}</div>`;
             headerRow.appendChild(th);
         });
         

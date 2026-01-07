@@ -48,7 +48,7 @@ class MethodologySlide extends SlideBase {
 
             <h3>Rating Scale</h3>
             <p class="mb-3">The rating scale was translated into a percentage for ease of analysis and interpretation.</p>
-            <table class="rating-scale mb-3">
+            <table class="mb-3">
                 <thead>
                     <tr>
                         <th rowspan="2"></th>

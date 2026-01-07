@@ -29,9 +29,9 @@
 }
 
 .slide-page-logo {
-    height: 50px;
-    width: auto;
-    object-fit: contain;
+    height: 40px;
+    /* width: auto;
+    object-fit: contain; */
 }
 
 /* Slide Content Area */

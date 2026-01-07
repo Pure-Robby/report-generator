@@ -20,12 +20,18 @@ class DividerSlide extends SlideBase {
         return slide;
     }
 
-    exportToPPT(pptx) {
+    async exportToPPT(pptx) {
         const slide = pptx.addSlide();
         
         // Use divider image if available
         if (this.options.useBackground) {
-            slide.background = { path: 'assets/divider.jpg' };
+            try {
+                const imageData = await imageToBase64('assets/divider.jpg');
+                slide.background = { data: imageData };
+            } catch (error) {
+                console.warn('Failed to load divider image, using solid color background:', error);
+                slide.background = { fill: '667eea' };
+            }
         } else {
             slide.background = { fill: '667eea' };
         }

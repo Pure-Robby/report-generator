@@ -21,9 +21,18 @@ class CoverSlide extends SlideBase {
         return slide;
     }
 
-    exportToPPT(pptx) {
+    async exportToPPT(pptx) {
         const slide = pptx.addSlide();
-        slide.background = { path: 'assets/cover-image.jpg' };
+        
+        // Try to load background image as base64
+        try {
+            const imageData = await imageToBase64('assets/cover-image.jpg');
+            slide.background = { data: imageData };
+        } catch (error) {
+            console.warn('Failed to load cover image, using solid color background:', error);
+            // Fallback to a gradient-like solid color background
+            slide.background = { color: '1a1a2e' };
+        }
         
         // Semi-transparent overlay
         slide.addShape(pptx.ShapeType.rect, {
