@@ -29,10 +29,6 @@ async function captureSlideAsImage(slideElement) {
     // Store original scroll position and styles
     const originalScrollY = window.scrollY;
     const originalScrollX = window.scrollX;
-    // const originalPosition = slideElement.style.position;
-    // const originalTop = slideElement.style.top;
-    // const originalLeft = slideElement.style.left;
-    // const originalZIndex = slideElement.style.zIndex;
     
     // Store original styles for elements we'll modify
     const originalStyles = {
@@ -48,14 +44,6 @@ async function captureSlideAsImage(slideElement) {
     slideElement.style.width = '1280px'; // Explicit width to prevent clipping
     slideElement.style.maxWidth = '1280px';
     slideElement.style.minWidth = '1280px';
-    
-    // Temporarily position element at top of viewport for capture
-    // Position at left: 0 to ensure full capture, but ensure viewport is wide enough
-    // slideElement.style.position = 'fixed';
-    // slideElement.style.top = '0';
-    // slideElement.style.left = '0';
-    // slideElement.style.zIndex = '1'; // Below overlay
-    //await new Promise(resolve => setTimeout(resolve, 200));
     
     // Get natural dimensions - verify element is actually visible
     const rect = slideElement.getBoundingClientRect();
@@ -176,16 +164,59 @@ async function captureSlideAsImage(slideElement) {
         contentArea.style.maxHeight = 'none';
         contentArea.style.overflow = 'visible';
     }
-    
-    // Trigger Chart.js resize
-    await new Promise(resolve => setTimeout(resolve, 200));
+
+    // Boost Chart.js resolution for export (temporary)
+    // This improves chart sharpness when slides are captured/upscaled.
+    const EXPORT_CHART_DPR = 3; // try 2 first if performance becomes heavy
+
+    // We'll store originals in originalStyles so we can restore in finally
+    originalStyles.charts = [];
+
     const canvases = slideElement.querySelectorAll('canvas');
-    canvases.forEach(canvas => {
-        if (canvas.chart && typeof canvas.chart.resize === 'function') {
-            canvas.chart.resize();
-        }
+
+    canvases.forEach((canvas) => {
+    let chart = null;
+
+    // 1) If you (or a plugin) attached it manually
+    if (canvas.chart) chart = canvas.chart;
+
+    // 2) Chart.js v3/v4 supported lookup
+    if (!chart && window.Chart && typeof window.Chart.getChart === 'function') {
+        chart = window.Chart.getChart(canvas);
+    }
+
+    // 3) Fallback for setups that still expose instances collections
+    if (!chart && window.Chart && window.Chart.instances) {
+        try {
+        const instances = Array.isArray(window.Chart.instances)
+            ? window.Chart.instances
+            : Object.values(window.Chart.instances);
+
+        chart = instances.find((c) => c && c.canvas === canvas) || null;
+        } catch (_) {}
+    }
+
+    if (!chart || !chart.options) return;
+
+    // Store originals for restore
+    originalStyles.charts.push({
+        chart,
+        dpr: chart.options.devicePixelRatio,
+        animation: chart.options.animation
     });
-    await new Promise(resolve => setTimeout(resolve, 400));
+
+    // Apply export settings
+    chart.options.devicePixelRatio = EXPORT_CHART_DPR;
+    chart.options.animation = false;
+
+    // Force re-render at higher DPR
+    if (typeof chart.resize === 'function') chart.resize();
+    if (typeof chart.update === 'function') chart.update('none');
+    });
+
+    // Small settle time for canvas redraw
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
 
     try {
         // Verify element is in viewport and visible before capture
@@ -200,6 +231,7 @@ async function captureSlideAsImage(slideElement) {
         const captureRect = slideElement.getBoundingClientRect();
         const canvas = await html2canvas(slideElement, {
             scale: 2,
+            backgroundColor: '#ffffff',
             useCORS: true,
             logging: true, // Enable logging to debug - check console for errors
             backgroundColor: null,
@@ -298,11 +330,6 @@ async function captureSlideAsImage(slideElement) {
         
         return imageDataUrl;
     } finally {
-        // Restore element position and styles
-        // slideElement.style.position = originalPosition;
-        // slideElement.style.top = originalTop;
-        // slideElement.style.left = originalLeft;
-        // slideElement.style.zIndex = originalZIndex;
         slideElement.style.width = '';
         slideElement.style.maxWidth = '';
         slideElement.style.minWidth = '';
@@ -320,11 +347,11 @@ async function captureSlideAsImage(slideElement) {
             }
         });
         
-        // Restore header border
-        if (originalStyles.header) {
-            const { element, borderBottom } = originalStyles.header;
-            element.style.borderBottom = borderBottom;
-        }
+        // // Restore header border
+        // if (originalStyles.header) {
+        //     const { element, borderBottom } = originalStyles.header;
+        //     element.style.borderBottom = borderBottom;
+        // }
         
         // Restore content area styles
         if (originalStyles.contentArea) {
@@ -332,6 +359,26 @@ async function captureSlideAsImage(slideElement) {
             element.style.maxHeight = maxHeight;
             element.style.overflow = overflow;
         }
+
+        // Restore Chart.js DPR/animation
+        if (originalStyles.charts && originalStyles.charts.length) {
+            originalStyles.charts.forEach(({ chart, dpr, animation }) => {
+            if (!chart || !chart.options) return;
+        
+            // Restore DPR (delete if it was originally undefined)
+            if (typeof dpr === 'undefined') {
+                delete chart.options.devicePixelRatio;
+            } else {
+                chart.options.devicePixelRatio = dpr;
+            }
+        
+            // Restore animation config
+            chart.options.animation = animation;
+        
+            if (typeof chart.resize === 'function') chart.resize();
+            if (typeof chart.update === 'function') chart.update('none');
+            });
+        }  
     }
 }
 
