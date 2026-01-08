@@ -83,11 +83,10 @@ class LegendComponent {
 
     const direction = diff > 0 ? 'up' : 'down';
     const arrow = diff > 0 ? '↑' : '↓';
-    const symbol = isSignificant ? arrow + arrow : arrow;
     const className = `shift-indicator ${direction}${
       isSignificant ? ' significant' : ''
     }`;
 
-    return `<span class="${className}">${symbol}</span>`;
+    return `<span class="${className}">${arrow}</span>`;
   }
 }
