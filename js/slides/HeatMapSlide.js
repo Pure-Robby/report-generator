@@ -66,7 +66,14 @@ class HeatMapSlide extends SlideBase {
     createHeatMapTable(rowData, subtitle) {
         const safeRows = Array.isArray(rowData) ? rowData : [];
         const table = document.createElement('table');
-        table.className = 'heatmap-table';
+        
+        // Check if shift indicators should be shown (previous data exists)
+        const showShiftIndicators = this.data.showShiftIndicators !== false;
+        
+        // Add class to table when comparison data exists for CSS targeting
+        table.className = showShiftIndicators 
+            ? 'heatmap-table has-shift-indicators' 
+            : 'heatmap-table';
         
         // Add subtitle if provided (for demographics sub-tables)
         if (subtitle) {
@@ -123,12 +130,26 @@ class HeatMapSlide extends SlideBase {
         engagementIndexHeader.innerHTML = '<div class="text-wrapper">ENGAGEMENT INDEX</div>';
         headerRow.appendChild(engagementIndexHeader);
         
-        // Core dimensions (12 columns with vertical text)
+        // Arrow column header for Engagement Index (only if previous data exists)
+        if (showShiftIndicators) {
+            const engagementArrowHeader = document.createElement('th');
+            engagementArrowHeader.className = 'arrow-column-header';
+            headerRow.appendChild(engagementArrowHeader);
+        }
+        
+        // Core dimensions (12 columns with vertical text) + arrow columns
         coreDimensions.forEach(dim => {
             const th = document.createElement('th');
             th.className = 'vertical-text';
             th.innerHTML = `<div class="text-wrapper">${dim}</div>`;
             headerRow.appendChild(th);
+            
+            // Arrow column header after each dimension (only if previous data exists)
+            if (showShiftIndicators) {
+                const arrowHeader = document.createElement('th');
+                arrowHeader.className = 'arrow-column-header';
+                headerRow.appendChild(arrowHeader);
+            }
         });
         
         // Separator column (empty header with dotted border)
@@ -142,7 +163,14 @@ class HeatMapSlide extends SlideBase {
         seacomIndexHeader.innerHTML = '<div class="text-wrapper">SEACOM INDEX</div>';
         headerRow.appendChild(seacomIndexHeader);
         
-        // Additional dimensions (6 columns with vertical text)
+        // Arrow column header for SEACOM INDEX (only if previous data exists)
+        if (showShiftIndicators) {
+            const seacomArrowHeader = document.createElement('th');
+            seacomArrowHeader.className = 'arrow-column-header';
+            headerRow.appendChild(seacomArrowHeader);
+        }
+        
+        // Additional dimensions (6 columns with vertical text) + arrow columns
         additionalDimensions.forEach(dim => {
             const th = document.createElement('th');
             th.className = 'vertical-text';
@@ -151,6 +179,13 @@ class HeatMapSlide extends SlideBase {
             th.appendChild(verticalTextContainer);
             verticalTextContainer.innerHTML = `<div class="text-wrapper">${dim}</div>`;
             headerRow.appendChild(th);
+            
+            // Arrow column header after each dimension (only if previous data exists)
+            if (showShiftIndicators) {
+                const arrowHeader = document.createElement('th');
+                arrowHeader.className = 'arrow-column-header';
+                headerRow.appendChild(arrowHeader);
+            }
         });
         
         thead.appendChild(headerRow);
@@ -184,11 +219,19 @@ class HeatMapSlide extends SlideBase {
             // Engagement Index cell
             this.addDataCell(tr, row.engagementIndex, row.shifts ? row.shifts.engagementIndex : null);
             
-            // Core dimension cells (12 columns)
+            // Arrow cell for Engagement Index (only if previous data exists)
+            if (showShiftIndicators) {
+                this.addArrowCell(tr, row.engagementIndex, row.shifts ? row.shifts.engagementIndex : null);
+            }
+            
+            // Core dimension cells (12 columns) with arrow cells
             const coreScores = row.coreScores || [];
             const coreShifts = row.shifts ? row.shifts.core || [] : [];
             for (let i = 0; i < 12; i++) {
                 this.addDataCell(tr, coreScores[i], coreShifts[i]);
+                if (showShiftIndicators) {
+                    this.addArrowCell(tr, coreScores[i], coreShifts[i]);
+                }
             }
             
             // Separator cell
@@ -199,21 +242,10 @@ class HeatMapSlide extends SlideBase {
             // SEACOM INDEX cell (highlighted, first after separator)
             const seacomCell = document.createElement('td');
             seacomCell.className = 'seacom-index-cell';
+            
             if (row.seacomIndex !== null && row.seacomIndex !== undefined) {
                 seacomCell.textContent = row.seacomIndex + '%';
                 seacomCell.classList.add(ColorMapper.getCellClass(row.seacomIndex, 'engagement'));
-                
-                // Add shift indicator if available
-                if (row.shifts && row.shifts.seacomIndex) {
-                    const shiftHtml = LegendComponent.getShiftIndicator(
-                        row.seacomIndex,
-                        row.shifts.seacomIndex.previous,
-                        row.shifts.seacomIndex.isSignificant
-                    );
-                    if (shiftHtml) {
-                        seacomCell.innerHTML = seacomCell.textContent + ' ' + shiftHtml;
-                    }
-                }
             } else {
                 seacomCell.textContent = '-';
                 seacomCell.style.backgroundColor = '#f8fafc';
@@ -221,11 +253,19 @@ class HeatMapSlide extends SlideBase {
             }
             tr.appendChild(seacomCell);
             
-            // Additional dimension cells (6 columns)
+            // Arrow cell for SEACOM INDEX (only if previous data exists)
+            if (showShiftIndicators) {
+                this.addArrowCell(tr, row.seacomIndex, row.shifts ? row.shifts.seacomIndex : null);
+            }
+            
+            // Additional dimension cells (6 columns) with arrow cells
             const additionalScores = row.additionalScores || [];
             const additionalShifts = row.shifts ? row.shifts.additional || [] : [];
             for (let i = 0; i < 6; i++) {
                 this.addDataCell(tr, additionalScores[i], additionalShifts[i]);
+                if (showShiftIndicators) {
+                    this.addArrowCell(tr, additionalScores[i], additionalShifts[i]);
+                }
             }
             
             tbody.appendChild(tr);
@@ -279,22 +319,33 @@ class HeatMapSlide extends SlideBase {
             const numValue = typeof value === 'number' ? value : parseInt(value);
             td.textContent = numValue + '%';
             td.className = ColorMapper.getCellClass(numValue, 'engagement');
-            
-            // Add shift indicator if available
-            if (shift) {
-                const shiftHtml = LegendComponent.getShiftIndicator(
-                    numValue,
-                    shift.previous,
-                    shift.isSignificant
-                );
-                if (shiftHtml) {
-                    td.innerHTML = td.textContent + ' ' + shiftHtml;
-                }
-            }
         } else {
             td.textContent = '-';
             td.style.backgroundColor = '#f8fafc';
             td.style.color = '#94a3b8';
+        }
+        
+        row.appendChild(td);
+    }
+
+    addArrowCell(row, value, shift) {
+        const td = document.createElement('td');
+        td.className = 'arrow-column-cell';
+        
+        // Always create the cell for visual consistency, even if empty
+        if (value !== null && value !== undefined && value !== '') {
+            const numValue = typeof value === 'number' ? value : parseFloat(value);
+            
+            if (shift && shift.previous !== null && shift.previous !== undefined && shift.previous !== '') {
+                const shiftHtml = LegendComponent.getShiftIndicator(
+                    numValue,
+                    shift.previous,
+                    shift.isSignificant || false
+                );
+                if (shiftHtml) {
+                    td.innerHTML = shiftHtml;
+                }
+            }
         }
         
         row.appendChild(td);

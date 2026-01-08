@@ -12,6 +12,10 @@ const RETENTION_RISK1_COLUMN = 9;   // Column J
 const RETENTION_RISK2_COLUMN = 10;  // Column K
 const TEN_POINT_SCALE_COLUMNS = [65, 67]; // Columns BN and BP - 10-point scale questions in Diversity & Inclusion
 
+// Configurable threshold for significant change in heatmap scores (percentage points)
+// Change this value to adjust when arrows change from grey to green/red
+const SIGNIFICANT_CHANGE_THRESHOLD = 5;
+
 class DataCalculations {
     /**
      * Expose key column indices for other modules
@@ -937,19 +941,19 @@ class DataCalculations {
                 shifts = {
                     engagementIndex: {
                         previous: previousEngagementIndex,
-                        isSignificant: previousEngagementIndex !== null && Math.abs(engagementIndex - previousEngagementIndex) >= 5
+                        isSignificant: previousEngagementIndex !== null && Math.abs(engagementIndex - previousEngagementIndex) >= SIGNIFICANT_CHANGE_THRESHOLD
                     },
                     core: coreScores.map((score, idx) => ({
                         previous: previousCoreScores[idx],
-                        isSignificant: previousCoreScores[idx] !== null && Math.abs(score - previousCoreScores[idx]) >= 5
+                        isSignificant: previousCoreScores[idx] !== null && Math.abs(score - previousCoreScores[idx]) >= SIGNIFICANT_CHANGE_THRESHOLD
                     })),
                     additional: additionalScores.map((score, idx) => ({
                         previous: previousAdditionalScores[idx],
-                        isSignificant: previousAdditionalScores[idx] !== null && Math.abs(score - previousAdditionalScores[idx]) >= 5
+                        isSignificant: previousAdditionalScores[idx] !== null && Math.abs(score - previousAdditionalScores[idx]) >= SIGNIFICANT_CHANGE_THRESHOLD
                     })),
                     seacomIndex: {
                         previous: previousSeacomIndex,
-                        isSignificant: previousSeacomIndex !== null && Math.abs(seacomIndex - previousSeacomIndex) >= 5
+                        isSignificant: previousSeacomIndex !== null && Math.abs(seacomIndex - previousSeacomIndex) >= SIGNIFICANT_CHANGE_THRESHOLD
                     }
                 };
             }
