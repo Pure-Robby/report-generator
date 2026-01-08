@@ -289,7 +289,8 @@ async function captureSlideAsImage(slideElement) {
         }
         
         // Convert canvas to base64 image
-        const imageDataUrl = canvas.toDataURL('image/png', 1.0);
+        // const imageDataUrl = canvas.toDataURL('image/png', 1.0);
+        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85); //jpeg produces smaller files
         
         if (!imageDataUrl || imageDataUrl === 'data:,') {
             throw new Error('Failed to generate image data from slide');
@@ -478,8 +479,7 @@ async function exportToPPT(reportData, slideInstances) {
             showToast('Error exporting to PowerPoint: ' + error.message, 'error');
         }
 
-    } finally {
-        // ✅ ALWAYS restore state and TURN OFF GUARD
+    } finally {        
         try { setExportGuard(false); } catch (_) {}
         document.body.classList.remove('exporting');
 
@@ -491,74 +491,199 @@ async function exportToPPT(reportData, slideInstances) {
     }
 }
 
-
-
-// Export to PDF
-function exportToPDF(reportData) {
-    try {
-        // Hide loading overlay before printing
-        hideLoading();
-        
-        // Use browser's print functionality for PDF export
-        const originalTitle = document.title;
-        document.title = reportData.reportName;
-
-        // Show all slides for printing
-        const slides = document.querySelectorAll('.slide');
-        const lastSlide = slides[slides.length - 1];
-        
-        slides.forEach((slide, index) => {
-            slide.style.display = 'flex';
-            slide.classList.remove('active');
-            // Remove page-break-after from last slide to prevent blank page
-            if (slide === lastSlide) {
-                slide.style.pageBreakAfter = 'auto';
-            }
-        });
-
-        // Hide all UI elements that shouldn't be printed
-        const header = document.querySelector('.preview-header');
-        const backToTop = document.querySelector('.back-to-top');
-        const toastContainer = document.getElementById('toast-container');
-        const loadingOverlay = document.getElementById('loading-overlay');
-        
-        if (header) header.style.display = 'none';
-        if (backToTop) backToTop.style.display = 'none';
-        if (toastContainer) toastContainer.style.display = 'none';
-        if (loadingOverlay) loadingOverlay.style.display = 'none';
-
-        // Small delay to ensure styles are applied before print
-        setTimeout(() => {
-            // Trigger print dialog
-            window.print();
-
-            // Restore original state after print dialog closes
-            setTimeout(() => {
-                document.title = originalTitle;
-                slides.forEach((slide, index) => {
-                    if (index !== document.querySelector('.slide.active')) {
-                        slide.style.display = 'none';
-                    }
-                    // Restore page-break-after for all slides
-                    slide.style.pageBreakAfter = '';
-                });
-                
-                // Restore UI elements
-                if (header) header.style.display = '';
-                if (backToTop) backToTop.style.display = '';
-                if (toastContainer) toastContainer.style.display = '';
-                if (loadingOverlay) loadingOverlay.style.display = '';
-                
-                showToast('PDF export completed. If you saved the file, check your downloads folder.', 'success');
-            }, 500);
-        }, 100);
-
-    } catch (error) {
-        console.error('Error exporting to PDF:', error);
-        hideLoading();
-        showToast('Error exporting to PDF: ' + error.message, 'error');
+async function exportToPDF(reportData) {
+    showLoading();
+  
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const loadingText = loadingOverlay?.querySelector('p');
+    const progressBar = document.getElementById('export-progress'); // optional
+    const exportThumb = document.getElementById('export-thumb');    // single thumb
+    const cancelBtn = document.getElementById('cancel-export');     // optional
+  
+    // Cancel support (optional)
+    let exportCancelled = false;
+    if (cancelBtn) {
+      cancelBtn.onclick = () => {
+        exportCancelled = true;
+        if (loadingText) loadingText.textContent = 'Cancelling export...';
+      };
     }
-}
+  
+    // Hide UI elements that shouldn't appear in capture
+    const header = document.querySelector('.preview-header');
+    const backToTop = document.querySelector('.back-to-top');
+    const toastContainer = document.getElementById('toast-container');
+  
+    const originalHeaderDisplay = header ? header.style.display : '';
+    const originalBackToTopDisplay = backToTop ? backToTop.style.display : '';
+    const originalToastDisplay = toastContainer ? toastContainer.style.display : '';
+  
+    // Helper: px -> pt (PDF points). Assumes 96dpi screen CSS pixels.
+    const pxToPt = (px) => px * 72 / 96;
+  
+    try {
+      // jsPDF availability
+      const jsPDF = window.jspdf?.jsPDF;
+      if (!jsPDF) throw new Error('jsPDF is not loaded.');
+  
+      const slideElements = document.querySelectorAll('.slide');
+      if (!slideElements.length) throw new Error('No slides found to export.');
+  
+      // Hide non-export UI
+      if (header) header.style.display = 'none';
+      if (backToTop) backToTop.style.display = 'none';
+      if (toastContainer) toastContainer.style.display = 'none';
+  
+      if (loadingOverlay) loadingOverlay.style.zIndex = '99999';
+  
+      if (loadingText) loadingText.textContent = 'Preparing PDF export...';
+      if (progressBar) progressBar.style.width = '0%';
+      if (exportThumb) exportThumb.src = '';
+  
+      // Ensure slides are rendered
+      slideElements.forEach((slide) => {
+        slide.style.display = 'flex';
+        slide.style.visibility = 'visible';
+      });
+  
+      await new Promise(r => setTimeout(r, 300));
+  
+      // Determine page size from first slide’s rendered size
+      const rect = slideElements[0].getBoundingClientRect();
+      const pageWPt = pxToPt(rect.width);
+      const pageHPt = pxToPt(rect.height);
+  
+      const pdf = new jsPDF({
+        orientation: pageWPt >= pageHPt ? 'landscape' : 'portrait',
+        unit: 'pt',
+        format: [pageWPt, pageHPt],
+        compress: true
+      });
+  
+      for (let i = 0; i < slideElements.length; i++) {
+        if (exportCancelled) throw new Error('Export cancelled by user');
+  
+        if (loadingText) {
+          loadingText.textContent = `Processing slide ${i + 1} of ${slideElements.length}...`;
+        }
+        if (progressBar) {
+          const pct = Math.round(((i + 1) / slideElements.length) * 100);
+          progressBar.style.width = `${pct}%`;
+        }
+  
+        // Capture slide as base64 image
+        const imageData = await captureSlideAsImage(slideElements[i]);
+  
+        // Update overlay thumbnail
+        if (exportThumb) exportThumb.src = imageData;
+  
+        // Add new page after the first
+        if (i > 0) {
+          pdf.addPage([pageWPt, pageHPt], pageWPt >= pageHPt ? 'landscape' : 'portrait');
+        }
+  
+        // Full-bleed image
+        // If your captureSlideAsImage outputs JPEG data URLs, use 'JPEG'. If PNG, use 'PNG'.
+        const isPng = imageData.startsWith('data:image/png');
+        pdf.addImage(imageData, isPng ? 'PNG' : 'JPEG', 0, 0, pageWPt, pageHPt);
+      }
+  
+      if (loadingText) loadingText.textContent = 'Finalising PDF file...';
+  
+      const fileName = `${reportData.reportName.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+      pdf.save(fileName);
+  
+      showToast('PDF exported successfully!', 'success');
+  
+    } catch (error) {
+      console.error('Error exporting to PDF:', error);
+  
+      if (error?.message === 'Export cancelled by user') {
+        showToast('Export cancelled', 'info');
+      } else {
+        showToast('Error exporting to PDF: ' + error.message, 'error');
+      }
+  
+    } finally {
+      // Always restore state + guard off
+      try { setExportGuard(false); } catch (_) {}
+      document.body.classList.remove('exporting');
+  
+      if (header) header.style.display = originalHeaderDisplay;
+      if (backToTop) backToTop.style.display = originalBackToTopDisplay;
+      if (toastContainer) toastContainer.style.display = originalToastDisplay;
+  
+      hideLoading();
+    }
+  }
+  
+
+// // Export to PDF
+// function exportToPDF(reportData) {
+//     try {
+//         // Hide loading overlay before printing
+//         hideLoading();
+        
+//         // Use browser's print functionality for PDF export
+//         const originalTitle = document.title;
+//         document.title = reportData.reportName;
+
+//         // Show all slides for printing
+//         const slides = document.querySelectorAll('.slide');
+//         const lastSlide = slides[slides.length - 1];
+        
+//         slides.forEach((slide, index) => {
+//             slide.style.display = 'flex';
+//             slide.classList.remove('active');
+//             // Remove page-break-after from last slide to prevent blank page
+//             if (slide === lastSlide) {
+//                 slide.style.pageBreakAfter = 'auto';
+//             }
+//         });
+
+//         // Hide all UI elements that shouldn't be printed
+//         const header = document.querySelector('.preview-header');
+//         const backToTop = document.querySelector('.back-to-top');
+//         const toastContainer = document.getElementById('toast-container');
+//         const loadingOverlay = document.getElementById('loading-overlay');
+        
+//         if (header) header.style.display = 'none';
+//         if (backToTop) backToTop.style.display = 'none';
+//         if (toastContainer) toastContainer.style.display = 'none';
+//         if (loadingOverlay) loadingOverlay.style.display = 'none';
+
+//         // Small delay to ensure styles are applied before print
+//         setTimeout(() => {
+//             // Trigger print dialog
+//             window.print();
+
+//             // Restore original state after print dialog closes
+//             setTimeout(() => {
+//                 document.title = originalTitle;
+//                 slides.forEach((slide, index) => {
+//                     if (index !== document.querySelector('.slide.active')) {
+//                         slide.style.display = 'none';
+//                     }
+//                     // Restore page-break-after for all slides
+//                     slide.style.pageBreakAfter = '';
+//                 });
+                
+//                 // Restore UI elements
+//                 if (header) header.style.display = '';
+//                 if (backToTop) backToTop.style.display = '';
+//                 if (toastContainer) toastContainer.style.display = '';
+//                 if (loadingOverlay) loadingOverlay.style.display = '';
+                
+//                 showToast('PDF export completed. If you saved the file, check your downloads folder.', 'success');
+//             }, 500);
+//         }, 100);
+
+//     } catch (error) {
+//         console.error('Error exporting to PDF:', error);
+//         hideLoading();
+//         showToast('Error exporting to PDF: ' + error.message, 'error');
+//     }
+// }
 
 // Toast and loading functions (shared with upload.js)
 function showToast(message, type = 'success') {
