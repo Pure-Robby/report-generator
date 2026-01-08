@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PPT Report Generator</title>
+    <title>Report Generator - Generate PPT or PDF Reports from Excel</title>
     <link rel="icon" href="assets/favicon.ico" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,8 +19,8 @@
 
     <div class="container">
         <header>
-            <h1>PPT Report Generator</h1>
-            <p>Upload your survey data to generate a professional report</p>
+            <h1>Report Generator</h1>
+            <p>Upload your survey data to generate a PPT or PDF report</p>
         </header>
 
         <main>
@@ -50,12 +50,15 @@
         </main>
 
         <footer>
-            <p>©2026 PPT Report Generator. All rights reserved.</p>
+            <p>© <span id="current-year"></span> Report Generator. All rights reserved.</p>
         </footer>
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="js/upload.js"></script>
+    <script>
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+    </script>
 </body>
 </html>
 

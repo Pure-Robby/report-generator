@@ -5,16 +5,102 @@ class SlideGenerator {
         if (!this.reportData) return;
 
         this.slideInstances = [];
+        this.totalSlideCount = 0;
         
         this.init();
     }
 
     init() {
         this.generateSlides();
+        this.setupPageNavigation();
         this.setupExportButtons();
         this.setupBackButton();
+        this.setupEditableTitle();
+    }
+
+    setupEditableTitle() {
+        const titleElement = document.getElementById('preview-title');
+        if (!titleElement) return;
+
+        titleElement.textContent = this.reportData.reportName;
         
-        document.getElementById('preview-title').textContent = this.reportData.reportName;
+        // Handle blur (when user clicks away)
+        titleElement.addEventListener('blur', () => {
+            this.updateReportName(titleElement.textContent.trim());
+        });
+
+        // Handle Enter key to save and blur
+        titleElement.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                titleElement.blur();
+            }
+        });
+
+        // Prevent empty title
+        titleElement.addEventListener('input', (e) => {
+            if (e.target.textContent.trim() === '') {
+                e.target.textContent = this.reportData.reportName;
+            }
+        });
+
+        // Handle edit icon click to focus the title
+        const editIcon = document.querySelector('.edit-icon');
+        if (editIcon) {
+            editIcon.addEventListener('click', (e) => {
+                e.preventDefault();
+                titleElement.focus();
+                
+                // Place cursor at the end of the text
+                const range = document.createRange();
+                const selection = window.getSelection();
+                range.selectNodeContents(titleElement);
+                range.collapse(false);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            });
+        }
+    }
+
+    updateReportName(newName) {
+        if (!newName || newName.trim() === '') {
+            const titleElement = document.getElementById('preview-title');
+            titleElement.textContent = this.reportData.reportName;
+            return;
+        }
+
+        const trimmedName = newName.trim();
+        
+        // Only update if the name actually changed
+        if (trimmedName === this.reportData.reportName) {
+            return;
+        }
+        
+        // Update local reportData
+        this.reportData.reportName = trimmedName;
+        
+        // Update sessionStorage
+        const reportData = DataParser.getReportData();
+        if (reportData) {
+            reportData.reportName = trimmedName;
+            sessionStorage.setItem('reportData', JSON.stringify(reportData));
+        }
+
+        // Update cover slide if it exists
+        this.updateCoverSlide(trimmedName);
+
+        showToast('Report name updated', 'success');
+    }
+
+    updateCoverSlide(newReportName) {
+        // Find the cover slide and update its report name
+        const coverSlide = document.querySelector('.slide-title');
+        if (coverSlide) {
+            const reportNameElement = coverSlide.querySelector('h2');
+            if (reportNameElement) {
+                reportNameElement.textContent = newReportName;
+            }
+        }
     }
 
     generateSlides() {
@@ -45,9 +131,7 @@ class SlideGenerator {
             surveyName: this.reportData.surveyName,
             reportName: this.reportData.reportName,
             date: DataParser.getCurrentDate()
-        }, container);
-
-        slideNumber++; 
+        }, container, { pageNumber: slideNumber++ }); 
 
         // Report Methodology
         this.addSlide('methodology', {
@@ -60,9 +144,7 @@ class SlideGenerator {
         // Divider Slide - Engagement Index Scores
         this.addSlide('divider', {
             title: 'Engagement Dimension Scores',
-        }, container, { pageNumber: slideNumber++ });
-
-        slideNumber++; 
+        }, container, { pageNumber: slideNumber++ }); 
 
         // Satisfaction Slides (Location, Cost Center, Department)
         try {
@@ -232,8 +314,6 @@ class SlideGenerator {
             title: 'Heatmap Slides',
         }, container, { pageNumber: slideNumber++ });
 
-        slideNumber++;
-
         // Heat Map Slides - Multiple breakdowns
         try {
             // 1. Location Heatmap
@@ -374,8 +454,6 @@ class SlideGenerator {
             title: 'Seacom Index Statement Scores',
         }, container, { pageNumber: slideNumber++ });
 
-        slideNumber++;
-
         // Horizontal Bar Charts - SEACOM Index Dimensions (one slide per dimension)
         try {
             const seacomDimensionData = DataCalculations.calculateSeacomDimensionStatements(this.reportData.data);
@@ -415,8 +493,6 @@ class SlideGenerator {
         this.addSlide('divider', {
             title: 'Retention Risk',
         }, container, { pageNumber: slideNumber++ });
-
-        slideNumber++;
 
         // Retention Risk Intro slide
         const retentionQuestions = DataCalculations.getRetentionQuestionTexts(this.reportData.data);
@@ -486,8 +562,6 @@ class SlideGenerator {
             title: 'Employee Net Promoter Score (eNPS)',
         }, container, { pageNumber: slideNumber++ });
 
-        slideNumber++;
-
         // eNPS Intro slide (static context)
         this.addSlide('enps-intro', {
             title: 'eNPS'
@@ -540,8 +614,6 @@ class SlideGenerator {
             title: 'Employee Comments',
         }, container, { pageNumber: slideNumber++ });
 
-        slideNumber++;
-
         // Employee Comments slides
         try {
             const commentsData = DataCalculations.calculateCommentSummaries(this.reportData.data);
@@ -571,8 +643,6 @@ class SlideGenerator {
         this.addSlide('divider', {
             title: 'Thank You',
         }, container, { pageNumber: slideNumber++ });
-
-        slideNumber++;
     }
 
     /**
@@ -587,8 +657,18 @@ class SlideGenerator {
             const slideInstance = SlideFactory.createSlide(type, data, options);
             const slideElement = slideInstance.getSlideElement();
             
+            // Add unique ID based on pageNumber if available
+            if (options.pageNumber) {
+                slideElement.id = `slide-${options.pageNumber}`;
+            }
+            
             container.appendChild(slideElement);
             this.slideInstances.push(slideInstance);
+            
+            // Update total slide count
+            if (options.pageNumber) {
+                this.totalSlideCount = Math.max(this.totalSlideCount, options.pageNumber);
+            }
         } catch (error) {
             console.error(`Error creating ${type} slide:`, error);
             showToast(`Error creating slide: ${error.message}`, 'error');
@@ -602,6 +682,195 @@ class SlideGenerator {
                 window.location.href = 'index.html';
             }
         });
+    }
+
+    setupPageNavigation() {
+        const navElement = document.getElementById('page-navigation');
+        const inputElement = document.getElementById('page-nav-input');
+        const totalElement = document.getElementById('page-nav-total');
+        const upButton = document.getElementById('page-nav-up');
+        const downButton = document.getElementById('page-nav-down');
+
+        if (!navElement || !inputElement || !totalElement || !upButton || !downButton) {
+            return;
+        }
+
+        // Hide navigation if no slides
+        if (this.totalSlideCount === 0) {
+            navElement.style.display = 'none';
+            return;
+        }
+
+        // Initialize total pages display
+        totalElement.textContent = this.totalSlideCount;
+        inputElement.max = this.totalSlideCount;
+
+        let currentPage = 1;
+        let isNavigating = false; // Prevent observer from updating during manual navigation
+
+        // Update UI based on current page
+        const updateUI = (page) => {
+            inputElement.value = page;
+            upButton.disabled = page <= 1;
+            downButton.disabled = page >= this.totalSlideCount;
+        };
+
+        // Scroll to a specific slide
+        const scrollToSlide = (pageNumber) => {
+            const slideElement = document.getElementById(`slide-${pageNumber}`);
+            if (slideElement) {
+                // Clear visibility map to prevent stale data
+                slideVisibility.clear();
+                
+                // Set navigating flag before updating UI
+                isNavigating = true;
+                currentPage = pageNumber;
+                updateUI(currentPage);
+                
+                // Scroll to the slide
+                slideElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+                // Re-enable observer after scroll completes (smooth scroll typically takes 500-800ms)
+                // Use a longer timeout to ensure scroll is fully complete
+                setTimeout(() => {
+                    isNavigating = false;
+                    // Force a check after navigation completes
+                    slideVisibility.clear();
+                }, 500);
+            }
+        };
+
+        // Intersection Observer to detect which slide is most visible
+        const observerOptions = {
+            root: null,
+            rootMargin: '-20% 0px -20% 0px', // Consider slide visible when 20% from top/bottom
+            threshold: [0, 0.25, 0.5, 0.75, 1]
+        };
+
+        const slideVisibility = new Map();
+        
+        const observerCallback = (entries) => {
+            // Ignore observer updates during manual navigation
+            if (isNavigating) return;
+
+            entries.forEach(entry => {
+                const slideId = entry.target.id;
+                if (!slideId) return;
+                
+                const pageNum = parseInt(slideId.replace('slide-', ''));
+                if (isNaN(pageNum)) return;
+                
+                if (entry.isIntersecting) {
+                    // Calculate visibility ratio (how much of the slide is visible)
+                    const rect = entry.boundingClientRect;
+                    const viewportHeight = window.innerHeight;
+                    const visibleHeight = Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0);
+                    const visibilityRatio = Math.max(0, visibleHeight / rect.height);
+                    slideVisibility.set(pageNum, visibilityRatio);
+                } else {
+                    slideVisibility.delete(pageNum);
+                }
+            });
+
+            // Find the slide with highest visibility
+            // Only update if we have visibility data and we're not navigating
+            if (slideVisibility.size > 0 && !isNavigating) {
+                let maxVisibility = 0;
+                let mostVisiblePage = currentPage;
+
+                slideVisibility.forEach((ratio, pageNum) => {
+                    if (ratio > maxVisibility) {
+                        maxVisibility = ratio;
+                        mostVisiblePage = pageNum;
+                    }
+                });
+
+                // Only update if the most visible page is different and has significant visibility
+                if (mostVisiblePage !== currentPage && maxVisibility > 0.3) {
+                    currentPage = mostVisiblePage;
+                    updateUI(currentPage);
+                }
+            }
+        };
+
+        const observer = new IntersectionObserver(observerCallback, observerOptions);
+
+        // Observe all slides
+        for (let i = 1; i <= this.totalSlideCount; i++) {
+            const slideElement = document.getElementById(`slide-${i}`);
+            if (slideElement) {
+                observer.observe(slideElement);
+            }
+        }
+
+        // Initial check to detect the currently visible slide on page load
+        setTimeout(() => {
+            let mostVisiblePage = 1;
+            let maxVisibility = 0;
+
+            for (let i = 1; i <= this.totalSlideCount; i++) {
+                const slideElement = document.getElementById(`slide-${i}`);
+                if (slideElement) {
+                    const rect = slideElement.getBoundingClientRect();
+                    const viewportHeight = window.innerHeight;
+                    const visibleHeight = Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0);
+                    const visibilityRatio = Math.max(0, visibleHeight / rect.height);
+                    
+                    if (visibilityRatio > maxVisibility) {
+                        maxVisibility = visibilityRatio;
+                        mostVisiblePage = i;
+                    }
+                }
+            }
+
+            if (mostVisiblePage !== currentPage) {
+                currentPage = mostVisiblePage;
+                updateUI(currentPage);
+            }
+        }, 100);
+
+        // Input field handlers
+        inputElement.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const pageNum = parseInt(inputElement.value);
+                if (pageNum >= 1 && pageNum <= this.totalSlideCount) {
+                    scrollToSlide(pageNum);
+                } else {
+                    inputElement.value = currentPage;
+                }
+                inputElement.blur();
+            }
+        });
+
+        inputElement.addEventListener('blur', () => {
+            const pageNum = parseInt(inputElement.value);
+            if (pageNum >= 1 && pageNum <= this.totalSlideCount) {
+                if (pageNum !== currentPage) {
+                    scrollToSlide(pageNum);
+                }
+            } else {
+                inputElement.value = currentPage;
+            }
+        });
+
+        // Navigation button handlers
+        upButton.addEventListener('click', () => {
+            if (currentPage > 1 && !isNavigating) {
+                const targetPage = currentPage - 1;
+                scrollToSlide(targetPage);
+            }
+        });
+
+        downButton.addEventListener('click', () => {
+            if (currentPage < this.totalSlideCount && !isNavigating) {
+                const targetPage = currentPage + 1;
+                scrollToSlide(targetPage);
+            }
+        });
+
+        // Initialize UI state
+        updateUI(1);
     }
 
     setupExportButtons() {
