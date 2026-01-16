@@ -53,7 +53,8 @@ class ColorMapper {
     static getRiskColor(percentage) {
         if (percentage < 20) return this.COLORS.risk.low;
         if (percentage < 35) return this.COLORS.risk.medium;
-        if (percentage < 50) return this.COLORS.risk.high;
+        // High Risk is inclusive of 50 (35 - 50); Very High is strictly > 50.
+        if (percentage <= 50) return this.COLORS.risk.high;
         return this.COLORS.risk.veryHigh;
     }
 
@@ -81,7 +82,8 @@ class ColorMapper {
         if (type === 'risk') {
             if (value < 20) return 'risk-low';
             if (value < 35) return 'risk-medium';
-            if (value < 50) return 'risk-high';
+            // High Risk is inclusive of 50 (35 - 50); Very High is strictly > 50.
+            if (value <= 50) return 'risk-high';
             return 'risk-very-high';
         } else {
             // Match legend thresholds: <25%, 25-52%, 52-65%, 65-75%, >=75%

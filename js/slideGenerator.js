@@ -136,9 +136,9 @@ class SlideGenerator {
         // Report Methodology
         this.addSlide('methodology', {
             title: 'Methodology',
-            uniqueResponses: currentData.totalResponses - 1, // Subtract 1 to exclude header row
+            uniqueResponses: currentData.totalResponses,
             totalHeadcount: 444, // TODO: Add this to Excel upload or make it dynamic
-            responseRate: Math.round(((currentData.totalResponses - 1) / 444) * 100)
+            responseRate: Math.round((currentData.totalResponses / 444) * 100)
         }, container, { pageNumber: slideNumber++ });
 
         // Divider Slide - Engagement Index Scores
@@ -595,9 +595,9 @@ class SlideGenerator {
                         title,
                         questionText: enpsData.questionText,
                         chartData: {
-                            detractorsPct: overallRow.detractorsPct,
-                            passivesPct: overallRow.passivesPct,
-                            promotersPct: overallRow.promotersPct,
+                            detractorsPct: overallRow.detractorsPctExact,
+                            passivesPct: overallRow.passivesPctExact,
+                            promotersPct: overallRow.promotersPctExact,
                             yearLabel: enpsData.yearLabel
                         },
                         rows: tableRows

@@ -115,7 +115,7 @@ class UploadManager {
                         return;
                     }
 
-                    const processSheet = (sheetIndex) => {
+                    const processSheet = (sheetIndex, { required = false } = {}) => {
                         const sheetName = workbook.SheetNames[sheetIndex];
                         if (!sheetName) return null;
                         
@@ -123,16 +123,80 @@ class UploadManager {
                         if (!sheet) return null;
                         
                         const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-                        if (!jsonData || jsonData.length === 0) return null;
-
-                        const headers = jsonData[0];
-                        const rows = jsonData.slice(1).filter(row => row.some(cell => cell !== undefined && cell !== ''));
-
-                        if (headers.length === 0 || rows.length === 0) {
+                        if (!jsonData || jsonData.length === 0) {
                             return null;
                         }
 
+                        const fail = (message) => {
+                            if (required) {
+                                throw new Error(message);
+                            }
+                            return null;
+                        };
+
+                        // Expected spreadsheet shape:
+                        // - Excel Row 1: optional "grouping" headers (visual grouping only)
+                        // - Excel Row 2: actual column headers / question text
+                        // - Excel Row 3+: respondent rows
+                        if (jsonData.length < 2) {
+                            return fail(
+                                `Sheet "${sheetName}" is missing required rows. ` +
+                                `Expected: Row 1 (grouping, optional), Row 2 (headers, required), Row 3+ (responses, required).`
+                            );
+                        }
+
+                        const groupHeaders = Array.isArray(jsonData[0]) ? jsonData[0] : [];
+                        const headers = Array.isArray(jsonData[1]) ? jsonData[1] : [];
+                        const rows = jsonData
+                            .slice(2)
+                            .filter(row => Array.isArray(row) && row.some(cell => cell !== undefined && cell !== ''));
+
+                        const normalize = (value) => (value ?? '').toString().trim().toLowerCase();
+
+                        // Minimal structural validation: this project relies on fixed column positions.
+                        // Validate the first key columns to catch wrong header-row placement early.
+                        const expectedHeaderChecks = [
+                            { index: 0, contains: 'code', label: 'code' },
+                            { index: 1, contains: 'department', label: 'department' },
+                            { index: 2, contains: 'cost', label: 'cost centre' },
+                            { index: 3, contains: 'location', label: 'location' }
+                        ];
+
+                        const headerLooksValid = expectedHeaderChecks.every(check => {
+                            const cell = headers[check.index];
+                            return normalize(cell).includes(check.contains);
+                        });
+
+                        if (!headers.length) {
+                            return fail(
+                                `Sheet "${sheetName}" header row is missing. ` +
+                                `Expected headers in Excel Row 2 (e.g. "code", "department", "cost centre", "location").`
+                            );
+                        }
+
+                        if (!headerLooksValid) {
+                            const headerPreview = headers
+                                .slice(0, 6)
+                                .map(v => (v ?? '').toString().trim())
+                                .filter(Boolean)
+                                .join(', ') || '(empty)';
+
+                            return fail(
+                                `Sheet "${sheetName}" does not appear to have the expected headers in Excel Row 2. ` +
+                                `The first columns should include: code, department, cost centre, location. ` +
+                                `Detected header preview: ${headerPreview}`
+                            );
+                        }
+
+                        if (!rows.length) {
+                            return fail(
+                                `Sheet "${sheetName}" contains no response rows. ` +
+                                `Expected responses starting in Excel Row 3.`
+                            );
+                        }
+
                         return {
+                            groupHeaders,
                             headers,
                             rows,
                             totalResponses: rows.length,
@@ -141,9 +205,11 @@ class UploadManager {
                         };
                     };
 
-                    const currentData = processSheet(0);
-                    if (!currentData) {
-                        reject(new Error('Sheet 1 is empty or missing required data'));
+                    let currentData;
+                    try {
+                        currentData = processSheet(0, { required: true });
+                    } catch (error) {
+                        reject(error);
                         return;
                     }
 

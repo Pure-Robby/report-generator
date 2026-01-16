@@ -203,6 +203,7 @@ class HeatMapSlide extends SlideBase {
             }
 
             const tr = document.createElement('tr');
+            const isInsufficientSample = Boolean(row && !row.isOverall && Number(row.sampleSize) <= 3);
             
             // Row header with name only
             const rowHeader = document.createElement('th');
@@ -217,20 +218,20 @@ class HeatMapSlide extends SlideBase {
             tr.appendChild(sampleSizeCell);
             
             // Engagement Index cell
-            this.addDataCell(tr, row.engagementIndex, row.shifts ? row.shifts.engagementIndex : null);
+            this.addDataCell(tr, row.engagementIndex, row.shifts ? row.shifts.engagementIndex : null, isInsufficientSample);
             
             // Arrow cell for Engagement Index (only if previous data exists)
             if (showShiftIndicators) {
-                this.addArrowCell(tr, row.engagementIndex, row.shifts ? row.shifts.engagementIndex : null);
+                this.addArrowCell(tr, row.engagementIndex, row.shifts ? row.shifts.engagementIndex : null, isInsufficientSample);
             }
             
             // Core dimension cells (12 columns) with arrow cells
             const coreScores = row.coreScores || [];
             const coreShifts = row.shifts ? row.shifts.core || [] : [];
             for (let i = 0; i < 12; i++) {
-                this.addDataCell(tr, coreScores[i], coreShifts[i]);
+                this.addDataCell(tr, coreScores[i], coreShifts[i], isInsufficientSample);
                 if (showShiftIndicators) {
-                    this.addArrowCell(tr, coreScores[i], coreShifts[i]);
+                    this.addArrowCell(tr, coreScores[i], coreShifts[i], isInsufficientSample);
                 }
             }
             
@@ -242,8 +243,11 @@ class HeatMapSlide extends SlideBase {
             // SEACOM INDEX cell (highlighted, first after separator)
             const seacomCell = document.createElement('td');
             seacomCell.className = 'seacom-index-cell';
-            
-            if (row.seacomIndex !== null && row.seacomIndex !== undefined) {
+
+            if (isInsufficientSample) {
+                seacomCell.textContent = '';
+                seacomCell.classList.add('insufficient-sample');
+            } else if (row.seacomIndex !== null && row.seacomIndex !== undefined) {
                 seacomCell.textContent = row.seacomIndex + '%';
                 seacomCell.classList.add(ColorMapper.getCellClass(row.seacomIndex, 'engagement'));
             } else {
@@ -255,16 +259,16 @@ class HeatMapSlide extends SlideBase {
             
             // Arrow cell for SEACOM INDEX (only if previous data exists)
             if (showShiftIndicators) {
-                this.addArrowCell(tr, row.seacomIndex, row.shifts ? row.shifts.seacomIndex : null);
+                this.addArrowCell(tr, row.seacomIndex, row.shifts ? row.shifts.seacomIndex : null, isInsufficientSample);
             }
             
             // Additional dimension cells (6 columns) with arrow cells
             const additionalScores = row.additionalScores || [];
             const additionalShifts = row.shifts ? row.shifts.additional || [] : [];
             for (let i = 0; i < 6; i++) {
-                this.addDataCell(tr, additionalScores[i], additionalShifts[i]);
+                this.addDataCell(tr, additionalScores[i], additionalShifts[i], isInsufficientSample);
                 if (showShiftIndicators) {
-                    this.addArrowCell(tr, additionalScores[i], additionalShifts[i]);
+                    this.addArrowCell(tr, additionalScores[i], additionalShifts[i], isInsufficientSample);
                 }
             }
             
@@ -312,8 +316,15 @@ class HeatMapSlide extends SlideBase {
         return tr;
     }
 
-    addDataCell(row, value, shift) {
+    addDataCell(row, value, shift, isInsufficientSample = false) {
         const td = document.createElement('td');
+
+        if (isInsufficientSample) {
+            td.textContent = '';
+            td.className = 'insufficient-sample';
+            row.appendChild(td);
+            return;
+        }
         
         if (value !== null && value !== undefined && value !== '') {
             const numValue = typeof value === 'number' ? value : parseInt(value);
@@ -328,9 +339,15 @@ class HeatMapSlide extends SlideBase {
         row.appendChild(td);
     }
 
-    addArrowCell(row, value, shift) {
+    addArrowCell(row, value, shift, suppressArrow = false) {
         const td = document.createElement('td');
         td.className = 'arrow-column-cell';
+        
+        // Keep the arrow cell, but never show an arrow when the row has no data (e.g. insufficient sample size).
+        if (suppressArrow) {
+            row.appendChild(td);
+            return;
+        }
         
         // Always create the cell for visual consistency, even if empty
         if (value !== null && value !== undefined && value !== '') {

@@ -29,15 +29,17 @@ class DataCalculations {
     }
 
     /**
-     * Returns only respondent rows (skips header row + summary row)
+     * Returns respondent rows.
+     *
+     * NOTE: With the current upload format, `dataset.rows` already contains only
+     * respondent rows (Excel Row 3+). This helper exists for backwards-compatible
+     * call sites and should not drop any rows.
+     *
      * @param {Array} rows
      * @returns {Array}
      */
     static getResponseRows(rows = []) {
-        if (!Array.isArray(rows) || rows.length === 0) {
-            return [];
-        }
-        return rows.length > 2 ? rows.slice(2) : [];
+        return Array.isArray(rows) ? rows : [];
     }
     /**
      * Calculate engagement index scores from raw survey data
@@ -125,7 +127,8 @@ class DataCalculations {
     static getRiskLevel(percentage) {
         if (percentage < 20) return 'low';
         if (percentage < 35) return 'medium';
-        if (percentage < 50) return 'high';
+        // High Risk is inclusive of 50 (35 - 50); Very High is strictly > 50.
+        if (percentage <= 50) return 'high';
         return 'very-high';
     }
 
@@ -559,24 +562,18 @@ class DataCalculations {
      * @returns {Array} Array of dimension objects with questions extracted from Excel
      */
     static extractSurveyQuestionsFromExcel(excelData) {
-        if (!excelData || !Array.isArray(excelData.rows)) {
+        if (!excelData) {
             throw new Error('Survey questions could not be extracted: parsed Excel data is missing.');
         }
 
-        if (!excelData.headers || excelData.headers.length === 0) {
-            throw new Error('Survey questions could not be extracted: header row (Row 1) is missing.');
+        if (!Array.isArray(excelData.headers) || excelData.headers.length === 0) {
+            throw new Error('Survey questions could not be extracted: header row (Row 2) is missing.');
         }
 
-        if (excelData.rows.length < 1) {
-            throw new Error('Survey questions could not be extracted: question row (Row 2) is missing.');
-        }
-
-        const questionRow = excelData.rows[0]; // Row 2 is index 0 within rows array
-        const dimensionRow = excelData.headers; // Row 1 contains dimension names
+        const questionRow = excelData.headers; // Excel Row 2 (header/question text)
 
         const columnMappings = this.getQuestionColumnMappings(false);
 
-        const invalidAggregate = /overall|average|total|aggregate/i;
         const dimensions = [];
 
         Object.entries(columnMappings).forEach(([dimensionName, config]) => {
@@ -586,21 +583,13 @@ class DataCalculations {
             }
             const questions = config.columns.map(colIndex => {
                 if (colIndex >= questionRow.length) {
-                    throw new Error(`Missing question text for ${dimensionName}. ${config.range} was not found in Row 2 of the upload.`);
-                }
-                if (colIndex >= dimensionRow.length) {
-                    throw new Error(`Missing dimension header for ${dimensionName}. ${config.range} was not found in Row 1 of the upload.`);
+                    throw new Error(`Missing header text for ${dimensionName}. ${config.range} was not found in Row 2 (the header row).`);
                 }
 
                 const question = questionRow[colIndex];
-                const dimensionHeader = dimensionRow[colIndex];
 
                 if (!question || question.toString().trim() === '') {
-                    throw new Error(`Missing question text for ${dimensionName}. Please populate ${config.range} in Row 2 of the spreadsheet.`);
-                }
-
-                if (dimensionHeader && invalidAggregate.test(dimensionHeader.toString())) {
-                    throw new Error(`Column ${config.range} for ${dimensionName} appears to be an aggregate column ("${dimensionHeader}"). Remove overall/aggregate headers from the upload.`);
+                    throw new Error(`Missing header text for ${dimensionName}. Please populate ${config.range} in Row 2 of the spreadsheet.`);
                 }
 
                 return question.toString().trim();
@@ -699,7 +688,7 @@ class DataCalculations {
             : null;
         const hasPrevious = Boolean(previousRows && previousRows.length);
 
-        const questionRow = excelData.current.rows[0] || [];
+        const questionRow = excelData.current.headers || [];
         const columnMappings = this.getQuestionColumnMappingsForSet(questionSet);
 
         const statements = [];
@@ -1111,15 +1100,13 @@ class DataCalculations {
     }
 
     static getRetentionQuestionTexts(excelData) {
-        if (!excelData || !excelData.current || !Array.isArray(excelData.current.rows)) {
+        if (!excelData || !excelData.current || !Array.isArray(excelData.current.headers)) {
             return {
                 risk1: 'I intend to look for a job in another company in the near future.',
                 risk2: 'At the present time, I am actively searching for another job.'
             };
         }
-
-        const rows = excelData.current.rows;
-        const questionRow = rows[0] || [];
+        const questionRow = excelData.current.headers || [];
 
         const risk1Text = questionRow[RETENTION_RISK1_COLUMN];
         const risk2Text = questionRow[RETENTION_RISK2_COLUMN];
@@ -1136,12 +1123,10 @@ class DataCalculations {
     }
 
     static getEnpsQuestionText(excelData) {
-        if (!excelData || !excelData.current || !Array.isArray(excelData.current.rows)) {
+        if (!excelData || !excelData.current || !Array.isArray(excelData.current.headers)) {
             return 'How likely is it that you would recommend SEACOM to a friend or colleague?';
         }
-
-        const rows = excelData.current.rows;
-        const questionRow = rows[0] || [];
+        const questionRow = excelData.current.headers || [];
         const questionText = questionRow[ENPS_COLUMN];
         if (!questionText || !questionText.toString().trim()) {
             return 'How likely is it that you would recommend SEACOM to a friend or colleague?';
@@ -1159,6 +1144,9 @@ class DataCalculations {
                 detractorsPct: 0,
                 passivesPct: 0,
                 promotersPct: 0,
+                detractorsPctExact: 0,
+                passivesPctExact: 0,
+                promotersPctExact: 0,
                 enpsScore: 0
             };
         }
@@ -1202,14 +1190,47 @@ class DataCalculations {
             };
         }
 
-        const detractorsPctExact = (detractors / total) * 100;
-        const passivesPctExact = (passives / total) * 100;
-        const promotersPctExact = (promoters / total) * 100;
+        // Raw exact percentages (float). These sum to 100 mathematically, but can drift when rounded for display.
+        const detractorsPctRaw = (detractors / total) * 100;
+        const passivesPctRaw = (passives / total) * 100;
+        const promotersPctRaw = (promoters / total) * 100;
 
-        const detractorsPct = Math.round(detractorsPctExact);
-        const passivesPct = Math.round(passivesPctExact);
+        // Display-safe rounding (2 decimals) that always sums to exactly 100.00%
+        // We allocate in basis points (0.01%) using the largest remainder method.
+        const buckets = [
+            { key: 'detractors', count: detractors },
+            { key: 'passives', count: passives },
+            { key: 'promoters', count: promoters }
+        ].map(b => {
+            const numerator = b.count * 10000; // basis points
+            const floorBp = Math.floor(numerator / total);
+            const remainder = numerator % total;
+            return { ...b, floorBp, remainder };
+        });
+
+        const sumFloorBp = buckets.reduce((acc, b) => acc + b.floorBp, 0);
+        let remainingBp = 10000 - sumFloorBp;
+
+        // Distribute remaining basis points to the largest remainders.
+        // We only have 3 buckets, but do this generally and deterministically.
+        buckets.sort((a, b) => b.remainder - a.remainder);
+        for (let i = 0; i < buckets.length && remainingBp > 0; i++) {
+            buckets[i].floorBp += 1;
+            remainingBp -= 1;
+        }
+
+        // Re-map to stable order
+        const byKey = new Map(buckets.map(b => [b.key, b.floorBp]));
+        const detractorsPctExact = (byKey.get('detractors') || 0) / 100;
+        const passivesPctExact = (byKey.get('passives') || 0) / 100;
+        const promotersPctExact = (byKey.get('promoters') || 0) / 100;
+
+        // Keep whole-number fields for compatibility (not used for display anymore)
+        const detractorsPct = Math.round(detractorsPctRaw);
+        const passivesPct = Math.round(passivesPctRaw);
         const promotersPct = 100 - detractorsPct - passivesPct;
-        const enpsScore = Math.round(promotersPctExact - detractorsPctExact);
+
+        const enpsScore = Math.round(promotersPctRaw - detractorsPctRaw);
 
         return {
             totalResponses: total,
@@ -1329,8 +1350,7 @@ class DataCalculations {
             throw new Error('Current year data is missing for employee comments.');
         }
 
-        const questionRow = excelData.current.rows[0] || []; // Row 2 (0-based index 0)
-        const summaryRow = excelData.current.rows[1] || []; // Row 3 (0-based index 1)
+        const questionRow = excelData.current.headers || []; // Excel Row 2
         const responseRows = this.getResponseRows(excelData.current.rows);
 
         return COMMENT_COLUMNS.map((columnIndex, idx) => {
@@ -1338,8 +1358,7 @@ class DataCalculations {
                 || `Question ${idx + 1}`;
             const questionText = this.formatCommentText(rawQuestionText);
 
-            const rawSummaryText = (summaryRow[columnIndex] && summaryRow[columnIndex].toString().trim())
-                || 'No summary content available for this question.';
+            const rawSummaryText = 'No summary content available for this question.';
             const summaryText = this.formatCommentText(rawSummaryText);
 
             const responses = responseRows
@@ -1433,7 +1452,7 @@ class DataCalculations {
             : null;
         const hasPrevious = Boolean(previousRows && previousRows.length);
 
-        const questionRow = excelData.current.rows[0] || [];
+        const questionRow = excelData.current.headers || [];
         const seacomMappings = {
             'Communication': { columns: [27, 28, 29] },
             'Trust': { columns: [31, 32, 33, 34] },
@@ -1513,7 +1532,7 @@ class DataCalculations {
             : null;
         const hasPrevious = Boolean(previousRows && previousRows.length);
 
-        const questionRow = excelData.current.rows[0] || [];
+        const questionRow = excelData.current.headers || [];
         const distributions = [];
 
         TEN_POINT_SCALE_COLUMNS.forEach((colIndex) => {

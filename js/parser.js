@@ -33,11 +33,11 @@ class DataParser {
             };
         }
 
-        const allRows = Array.isArray(dataset.rows) ? dataset.rows : [];
-        const responseRows = allRows.length > 1 ? allRows.slice(1) : [];
+        // `dataset.rows` is expected to contain respondent rows only (Excel Row 3+).
+        const responseRows = Array.isArray(dataset.rows) ? dataset.rows : [];
 
-        const totalResponses = dataset.totalResponses
-            ? Math.max(dataset.totalResponses - 1, responseRows.length)
+        const totalResponses = Number.isInteger(dataset.totalResponses)
+            ? dataset.totalResponses
             : responseRows.length;
         const columns = dataset.headers ? dataset.headers.length : 0;
         
@@ -116,8 +116,7 @@ class DataParser {
         if (!Array.isArray(rows) || columnIndex === undefined) {
             return null;
         }
-
-        const responseRows = Array.isArray(rows) ? rows.slice(1) : [];
+        const responseRows = rows;
 
         const numericValues = responseRows
             .map(row => Array.isArray(row) ? row[columnIndex] : null)

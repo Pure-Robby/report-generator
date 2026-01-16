@@ -79,6 +79,7 @@ class ENPSSlide extends SlideBase {
             if (row.isOverall && index === 0) {
                 tr.classList.add('enps-overall-row');
             }
+            const isInsufficientSample = Boolean(row && !row.isOverall && Number(row.n) <= 3);
 
             const nameCell = document.createElement('th');
             nameCell.textContent = row.name || 'Unknown';
@@ -89,20 +90,27 @@ class ENPSSlide extends SlideBase {
             tr.appendChild(nCell);
 
             const scoreCell = document.createElement('td');
-            scoreCell.textContent = this.formatScore(row.enpsScore);
+            scoreCell.textContent = isInsufficientSample ? '' : this.formatScore(row.enpsScore);
             tr.appendChild(scoreCell);
 
             const detCell = document.createElement('td');
-            detCell.textContent = this.formatPercentage(row.detractorsPctExact, row.detractors);
+            detCell.textContent = isInsufficientSample ? '' : this.formatPercentage(row.detractorsPctExact, row.detractors);
             tr.appendChild(detCell);
 
             const passiveCell = document.createElement('td');
-            passiveCell.textContent = this.formatPercentage(row.passivesPctExact, row.passives);
+            passiveCell.textContent = isInsufficientSample ? '' : this.formatPercentage(row.passivesPctExact, row.passives);
             tr.appendChild(passiveCell);
 
             const promCell = document.createElement('td');
-            promCell.textContent = this.formatPercentage(row.promotersPctExact, row.promoters);
+            promCell.textContent = isInsufficientSample ? '' : this.formatPercentage(row.promotersPctExact, row.promoters);
             tr.appendChild(promCell);
+
+            if (isInsufficientSample) {
+                scoreCell.classList.add('insufficient-sample');
+                detCell.classList.add('insufficient-sample');
+                passiveCell.classList.add('insufficient-sample');
+                promCell.classList.add('insufficient-sample');
+            }
 
             if (row.isOverall && index === 0) {
                 nameCell.classList.add('enps-overall-highlight');
@@ -153,6 +161,8 @@ class ENPSSlide extends SlideBase {
             }
         ];
 
+        const formatPct = (value) => `${this.formatPercentageValue(value)}%`;
+
         this.chartInstance = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -170,13 +180,13 @@ class ENPSSlide extends SlideBase {
                     },
                     tooltip: {
                         callbacks: {
-                            label: context => `${context.dataset.label}: ${context.parsed.x}%`
+                            label: context => `${context.dataset.label}: ${formatPct(context.parsed.x)}`
                         }
                     },
                     datalabels: {
                         anchor: 'center',
                         align: 'center',
-                        formatter: value => `${value}%`,
+                        formatter: value => formatPct(value),
                         font: { weight: '600' }
                     }
                 },
@@ -200,9 +210,16 @@ class ENPSSlide extends SlideBase {
         return score.toString();
     }
 
+    formatPercentageValue(value) {
+        if (value === null || value === undefined || Number.isNaN(value)) return '';
+        // Keep up to 2 decimals, then trim trailing zeros (and trailing dot).
+        return value.toFixed(2).replace(/\.?0+$/, '');
+    }
+
     formatPercentage(value, count) {
-        if (value === null || value === undefined) return '';
-        const pct = `${value.toFixed(2)}%`;
+        const formattedValue = this.formatPercentageValue(value);
+        if (!formattedValue) return '';
+        const pct = `${formattedValue}%`;
         if (typeof count === 'number') {
             return `${pct} (n = ${count})`;
         }

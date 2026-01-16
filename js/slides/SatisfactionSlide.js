@@ -134,6 +134,28 @@ class SatisfactionSlide extends SlideBase {
                 <td>${previousItem ? previousItem.dissatisfied + '%' : ''}</td>
                 <td>${previousItem ? previousItem.satisfied + '%' : ''}</td>
             `;
+
+            // If sample size is insufficient (<=3), show the row name but blank + grey metric cells.
+            // Satisfaction data uses `count` as the sample size.
+            const cells = row.querySelectorAll('td');
+            if (cells.length === 5) {
+                const currentInsufficient = Boolean(currentItem && Number(currentItem.count) <= 3);
+                const previousInsufficient = Boolean(previousItem && Number(previousItem.count) <= 3);
+
+                if (currentInsufficient) {
+                    cells[1].textContent = '';
+                    cells[2].textContent = '';
+                    cells[1].classList.add('insufficient-sample');
+                    cells[2].classList.add('insufficient-sample');
+                }
+
+                if (previousInsufficient) {
+                    cells[3].textContent = '';
+                    cells[4].textContent = '';
+                    cells[3].classList.add('insufficient-sample');
+                    cells[4].classList.add('insufficient-sample');
+                }
+            }
             tbody.appendChild(row);
         }
         

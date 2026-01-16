@@ -43,7 +43,7 @@ class MethodologySlide extends SlideBase {
             <ul class="mb-3">
                 <li>eNPS: Employee Net Promoter Score calculated from one question of "How likely are you to recommend SEACOM to friends or family?"</li>
                 <li>n: Sample size</li>
-                <li>Insufficient sample sizes: No data shown for a group of less than 3 people</li>
+                <li>Insufficient sample sizes: No data shown for a group of 3 or less people</li>
             </ul>
 
             <h3>Rating Scale</h3>

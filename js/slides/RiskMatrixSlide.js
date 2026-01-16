@@ -71,6 +71,7 @@ class RiskMatrixSlide extends SlideBase {
         
         rows.forEach(dept => {
             const row = document.createElement('tr');
+            const isInsufficientSample = Boolean(dept && !dept.isOverall && Number(dept.n) <= 3);
             
             // Department name
             const thName = document.createElement('th');
@@ -86,20 +87,35 @@ class RiskMatrixSlide extends SlideBase {
             
             // Overall risk
             const tdOverall = document.createElement('td');
-            tdOverall.textContent = dept.overall + '%';
-            tdOverall.className = ColorMapper.getCellClass(dept.overall, 'risk');
+            if (isInsufficientSample) {
+                tdOverall.textContent = '';
+                tdOverall.className = 'insufficient-sample';
+            } else {
+                tdOverall.textContent = dept.overall + '%';
+                tdOverall.className = ColorMapper.getCellClass(dept.overall, 'risk');
+            }
             row.appendChild(tdOverall);
             
             // Risk 1
             const tdRisk1 = document.createElement('td');
-            tdRisk1.textContent = dept.risk1 + '%';
-            tdRisk1.className = ColorMapper.getCellClass(dept.risk1, 'risk');
+            if (isInsufficientSample) {
+                tdRisk1.textContent = '';
+                tdRisk1.className = 'insufficient-sample';
+            } else {
+                tdRisk1.textContent = dept.risk1 + '%';
+                tdRisk1.className = ColorMapper.getCellClass(dept.risk1, 'risk');
+            }
             row.appendChild(tdRisk1);
             
             // Risk 2
             const tdRisk2 = document.createElement('td');
-            tdRisk2.textContent = dept.risk2 + '%';
-            tdRisk2.className = ColorMapper.getCellClass(dept.risk2, 'risk');
+            if (isInsufficientSample) {
+                tdRisk2.textContent = '';
+                tdRisk2.className = 'insufficient-sample';
+            } else {
+                tdRisk2.textContent = dept.risk2 + '%';
+                tdRisk2.className = ColorMapper.getCellClass(dept.risk2, 'risk');
+            }
             row.appendChild(tdRisk2);
             
             tbody.appendChild(row);
