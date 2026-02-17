@@ -75,7 +75,7 @@ class BarChartSlide extends SlideBase {
                 data: currentData,
                 backgroundColor: ColorMapper.COLORS.chart.primary,
                 borderColor: chartBgColor,
-                borderWidth: { top: 0, bottom: 0, left: 0, right: 2 }, // gap on the right
+                borderWidth: { top: 0, bottom: 0, left: 0, right: hasPreviousData ? 2 : 0 }, // gap on the right if previous exists
                 barThickness: barThickness,
                 datalabels: {
                     align: 'end',
@@ -96,6 +96,29 @@ class BarChartSlide extends SlideBase {
                 label: this.data.previousLabel || 'Previous Year',
                 data: previousData,
                 backgroundColor: ColorMapper.COLORS.chart.secondary,
+                borderColor: chartBgColor,
+                borderWidth: { top: 0, bottom: 0, left: 2, right: this.data.filtered ? 2 : 0 }, // gap on both sides if filtered exists
+                barThickness: barThickness,
+                datalabels: {
+                    align: 'end',
+                    anchor: 'end',
+                    color: '#1e293b',
+                    font: {
+                        size: 10,
+                        family: 'Poppins',
+                        weight: 600
+                    },
+                    formatter: (value) => value + '%'
+                }
+            });
+        }
+        
+        // Add filtered dataset if available
+        if (this.data.filtered && this.data.filtered.length > 0) {
+            datasets.push({
+                label: 'Filtered Subset',
+                data: this.data.filtered,
+                backgroundColor: '#fb923c', // Orange for filtered
                 borderColor: chartBgColor,
                 borderWidth: { top: 0, bottom: 0, left: 2, right: 0 }, // gap on the left
                 barThickness: barThickness,

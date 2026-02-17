@@ -65,6 +65,44 @@
             </div>
           </div>
 
+          <div class="form-group" id="filter-section" style="display: none;">
+            <label>
+              <input type="checkbox" id="enable-filter" name="enableFilter" />
+              Enable Filtered Report Comparison
+            </label>
+            <small class="text-muted" style="display: block; margin-top: 5px;">
+              Compare overall results with a filtered subset of responses
+            </small>
+            
+            <div id="filter-controls" style="display: none; margin-top: 15px; padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; background-color: #f9fafb;">
+              <div class="form-group">
+                <label for="filter-dimension">Filter By *</label>
+                <select id="filter-dimension" name="filterDimension" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                  <option value="">Select dimension...</option>
+                  <option value="location">Location</option>
+                  <option value="department">Department</option>
+                  <option value="costCenter">Cost Center</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="filter-values">Select Values *</label>
+                <select id="filter-values" name="filterValues" multiple style="width: 100%; min-height: 120px; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                  <option value="" disabled>Upload file first to see available values</option>
+                </select>
+                <small class="text-muted" style="display: block; margin-top: 5px;">
+                  Hold Ctrl (Windows) or Cmd (Mac) to select multiple values
+                </small>
+              </div>
+              
+              <div id="filter-feedback" style="margin-top: 10px; padding: 8px; background-color: #eff6ff; border-radius: 6px; display: none;">
+                <small style="color: #1e40af; font-weight: 500;">
+                  <span id="filter-count">0</span> responses match the selected filter
+                </small>
+              </div>
+            </div>
+          </div>
+
           <button type="submit" class="btn btn-primary" id="upload-btn">
             Generate Report
           </button>

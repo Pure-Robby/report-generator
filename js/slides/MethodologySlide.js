@@ -31,12 +31,27 @@ class MethodologySlide extends SlideBase {
         const body = document.createElement('div');
         body.className = 'methodology-content';
         
+        // Build filtered section if filter is active
+        let filteredSection = '';
+        if (this.data.filteredResponses && this.data.filterCriteria) {
+            const dimensionLabels = {
+                location: 'Location',
+                department: 'Department',
+                costCenter: 'Cost Center'
+            };
+            const dimensionLabel = dimensionLabels[this.data.filterCriteria.dimension] || this.data.filterCriteria.dimension;
+            const valuesList = this.data.filterCriteria.values.join(', ');
+            
+            filteredSection = `<p class="mb-3"><strong>Filtered Subset:</strong> ${this.data.filteredResponses} responses matching ${dimensionLabel}: ${valuesList}</p>`;
+        }
+        
         body.innerHTML = `
             <h3>Confidentiality</h3>
             <p class="mb-3">Pure Survey is a member of the South African Marketing Research Association (SAMRA) and abides by the ethical standards set by SAMRA, of which confidentiality is a key stipulation. All survey responses are hosted by Pure Survey. All data that is collected and reported on by Pure Survey is in line with SEACOM's data protection requirements.</p>
             
             <h3>Surveying Methods</h3>
             <p class="mb-3">The Employee Engagement Survey was conducted electronically via the internet and email. The survey was distributed by means of an email invitation, which contained a clickable link directing participants to the survey hosted on Pure Survey's server. There were ${this.data.uniqueResponses} unique responses completed out of the total headcount of ${this.data.totalHeadcount} which equates to a response rate of ${this.data.responseRate}%</p>
+            ${filteredSection}
 
 
             <h3>Glossary</h3>

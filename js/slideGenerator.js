@@ -134,12 +134,20 @@ class SlideGenerator {
         }, container, { pageNumber: slideNumber++ }); 
 
         // Report Methodology
-        this.addSlide('methodology', {
+        const methodologyData = {
             title: 'Methodology',
             uniqueResponses: currentData.totalResponses,
             totalHeadcount: 444, // TODO: Add this to Excel upload or make it dynamic
             responseRate: Math.round((currentData.totalResponses / 444) * 100)
-        }, container, { pageNumber: slideNumber++ });
+        };
+        
+        // Add filtered data if filter is active
+        if (this.reportData.filteredData && this.reportData.filteredData.current) {
+            methodologyData.filteredResponses = this.reportData.filteredData.current.totalResponses;
+            methodologyData.filterCriteria = this.reportData.filterCriteria;
+        }
+        
+        this.addSlide('methodology', methodologyData, container, { pageNumber: slideNumber++ });
 
         // Divider Slide - Engagement Index Scores
         this.addSlide('divider', {
@@ -150,34 +158,58 @@ class SlideGenerator {
         try {
             // 1. Satisfaction - Location
             const locationData = DataCalculations.calculateSatisfactionData(this.reportData.data, 'location');
-            this.addSlide('satisfaction', {
+            const locationSlideData = {
                 title: 'Satisfaction - Location',
                 dimension: 'location',
                 currentData: locationData.current,
                 previousData: locationData.previous,
                 mergedBreakdown: locationData.mergedBreakdown,
                 yearLabels
-            }, container, { pageNumber: slideNumber++ });
+            };
+            
+            // Add filtered data if filter is active
+            if (this.reportData.filteredData) {
+                const filteredLocationData = DataCalculations.calculateSatisfactionData(this.reportData.filteredData, 'location');
+                locationSlideData.filteredData = filteredLocationData.current;
+                locationSlideData.filteredPreviousData = filteredLocationData.previous;
+            }
+            
+            this.addSlide('satisfaction', locationSlideData, container, { pageNumber: slideNumber++ });
 
             // 2. Satisfaction - Cost Center
             const costCenterData = DataCalculations.calculateSatisfactionData(this.reportData.data, 'costCenter');
-            this.addSlide('satisfaction', {
+            const costCenterSlideData = {
                 title: 'Satisfaction - Cost Center',
                 dimension: 'costCenter',
                 currentData: costCenterData.current,
                 previousData: costCenterData.previous,
                 mergedBreakdown: costCenterData.mergedBreakdown,
                 yearLabels
-            }, container, { pageNumber: slideNumber++ });
+            };
+            
+            // Add filtered data if filter is active
+            if (this.reportData.filteredData) {
+                const filteredCostCenterData = DataCalculations.calculateSatisfactionData(this.reportData.filteredData, 'costCenter');
+                costCenterSlideData.filteredData = filteredCostCenterData.current;
+                costCenterSlideData.filteredPreviousData = filteredCostCenterData.previous;
+            }
+            
+            this.addSlide('satisfaction', costCenterSlideData, container, { pageNumber: slideNumber++ });
 
             // 3. Satisfaction - Department (with pagination if > 13 rows)
             const departmentData = DataCalculations.calculateSatisfactionData(this.reportData.data, 'department');
             const maxRowsPerSlide = 13;
             const departmentBreakdown = departmentData.mergedBreakdown || [];
             
+            // Prepare filtered data if filter is active
+            let filteredDepartmentData = null;
+            if (this.reportData.filteredData) {
+                filteredDepartmentData = DataCalculations.calculateSatisfactionData(this.reportData.filteredData, 'department');
+            }
+            
             if (departmentBreakdown.length <= maxRowsPerSlide - 1) {
                 // Fits on one slide (-1 because overall row takes one space)
-                this.addSlide('satisfaction', {
+                const deptSlideData = {
                     title: 'Satisfaction - Department',
                     dimension: 'department',
                     currentData: departmentData.current,
@@ -185,13 +217,20 @@ class SlideGenerator {
                     mergedBreakdown: departmentBreakdown,
                     maxRows: maxRowsPerSlide,
                     yearLabels
-                }, container, { pageNumber: slideNumber++ });
+                };
+                
+                if (filteredDepartmentData) {
+                    deptSlideData.filteredData = filteredDepartmentData.current;
+                    deptSlideData.filteredPreviousData = filteredDepartmentData.previous;
+                }
+                
+                this.addSlide('satisfaction', deptSlideData, container, { pageNumber: slideNumber++ });
             } else {
                 // Need pagination - split into multiple slides
                 const firstPageRows = maxRowsPerSlide - 1; // -1 for overall row
                 
                 // First page
-                this.addSlide('satisfaction', {
+                const deptSlideData1 = {
                     title: 'Satisfaction - Department',
                     dimension: 'department',
                     currentData: departmentData.current,
@@ -200,9 +239,16 @@ class SlideGenerator {
                     startIndex: 0,
                     maxRows: maxRowsPerSlide,
                     yearLabels
-                }, container, { pageNumber: slideNumber++ });
+                };
                 
-                // Second page (continuation)
+                if (filteredDepartmentData) {
+                    deptSlideData1.filteredData = filteredDepartmentData.current;
+                    deptSlideData1.filteredPreviousData = filteredDepartmentData.previous;
+                }
+                
+                this.addSlide('satisfaction', deptSlideData1, container, { pageNumber: slideNumber++ });
+                
+                // Second page (continuation) - no filtered row on continuation pages
                 this.addSlide('satisfaction', {
                     title: 'Satisfaction - Department (Continued)',
                     dimension: 'department',
@@ -249,15 +295,22 @@ class SlideGenerator {
         // Bar Chart - Engagement Index Scores (Dynamic from Excel)
         try {
             const barChartData = DataCalculations.calculateEngagementIndexScores(this.reportData.data);
-            
-            this.addSlide('barchart', {
+            const barChartSlideData = {
                 title: 'Engagement Index Scores',
                 categories: barChartData.categories,
                 current: barChartData.currentYear.scores,
                 previous: barChartData.previousYear ? barChartData.previousYear.scores : null,
                 currentLabel: barChartData.currentYear.label,
                 previousLabel: barChartData.previousYear ? barChartData.previousYear.label : null
-            }, container, { pageNumber: slideNumber++ });
+            };
+            
+            // Add filtered data if filter is active
+            if (this.reportData.filteredData) {
+                const filteredBarChartData = DataCalculations.calculateEngagementIndexScores(this.reportData.filteredData);
+                barChartSlideData.filtered = filteredBarChartData.currentYear.scores;
+            }
+            
+            this.addSlide('barchart', barChartSlideData, container, { pageNumber: slideNumber++ });
         } catch (error) {
             console.error('Failed to generate bar chart:', error);
             showToast(error.message, 'error');
@@ -281,15 +334,22 @@ class SlideGenerator {
         // Bar Chart - SEACOM Index & Additional Dimensions
         try {
             const seacomChartData = DataCalculations.calculateSeacomDimensionScores(this.reportData.data);
-
-            this.addSlide('barchart', {
+            const seacomChartSlideData = {
                 title: 'SEACOM Index & Dimension Scores',
                 categories: seacomChartData.categories,
                 current: seacomChartData.currentYear.scores,
                 previous: seacomChartData.previousYear ? seacomChartData.previousYear.scores : null,
                 currentLabel: seacomChartData.currentYear.label,
                 previousLabel: seacomChartData.previousYear ? seacomChartData.previousYear.label : null
-            }, container, { pageNumber: slideNumber++ });
+            };
+            
+            // Add filtered data if filter is active
+            if (this.reportData.filteredData) {
+                const filteredSeacomChartData = DataCalculations.calculateSeacomDimensionScores(this.reportData.filteredData);
+                seacomChartSlideData.filtered = filteredSeacomChartData.currentYear.scores;
+            }
+            
+            this.addSlide('barchart', seacomChartSlideData, container, { pageNumber: slideNumber++ });
         } catch (error) {
             console.error('Failed to generate SEACOM dimension bar chart:', error);
             showToast(error.message, 'error');
@@ -322,12 +382,28 @@ class SlideGenerator {
                 'location',
                 { showShiftIndicators: hasPreviousData }
             );
-            this.addSlide('heatmap', {
+            
+            const locationHeatmapSlideData = {
                 title: 'Engagement by Location',
                 breakdownType: 'location',
                 rowData: locationHeatmapData,
                 showShiftIndicators: hasPreviousData
-            }, container, { pageNumber: slideNumber++ });
+            };
+            
+            // Add filtered row if filter is active
+            if (this.reportData.filteredData) {
+                const filteredLocationHeatmapData = DataCalculations.calculateHeatMapData(
+                    this.reportData.filteredData,
+                    'location',
+                    { showShiftIndicators: hasPreviousData }
+                );
+                const filteredOverallRow = filteredLocationHeatmapData.find(row => row.isOverall);
+                if (filteredOverallRow) {
+                    locationHeatmapSlideData.filteredRow = filteredOverallRow;
+                }
+            }
+            
+            this.addSlide('heatmap', locationHeatmapSlideData, container, { pageNumber: slideNumber++ });
 
             // 2. Cost Centre Heatmap
             const costCentreHeatmapData = DataCalculations.calculateHeatMapData(
@@ -335,12 +411,28 @@ class SlideGenerator {
                 'costCentre',
                 { showShiftIndicators: hasPreviousData }
             );
-            this.addSlide('heatmap', {
+            
+            const costCentreHeatmapSlideData = {
                 title: 'Engagement by Cost Centre',
                 breakdownType: 'costCentre',
                 rowData: costCentreHeatmapData,
                 showShiftIndicators: hasPreviousData
-            }, container, { pageNumber: slideNumber++ });
+            };
+            
+            // Add filtered row if filter is active
+            if (this.reportData.filteredData) {
+                const filteredCostCentreHeatmapData = DataCalculations.calculateHeatMapData(
+                    this.reportData.filteredData,
+                    'costCentre',
+                    { showShiftIndicators: hasPreviousData }
+                );
+                const filteredOverallRow = filteredCostCentreHeatmapData.find(row => row.isOverall);
+                if (filteredOverallRow) {
+                    costCentreHeatmapSlideData.filteredRow = filteredOverallRow;
+                }
+            }
+            
+            this.addSlide('heatmap', costCentreHeatmapSlideData, container, { pageNumber: slideNumber++ });
 
             // 3. Department Heatmap (paginated if needed)
             const departmentHeatmapData = DataCalculations.calculateHeatMapData(
@@ -354,17 +446,34 @@ class SlideGenerator {
             const maxRowsPerSlide = 9; // Overall row + 10 department rows
             const departmentRowsPerPage = maxRowsPerSlide - 1;
             
+            // Prepare filtered row if filter is active
+            let filteredDepartmentRow = null;
+            if (this.reportData.filteredData) {
+                const filteredDepartmentHeatmapData = DataCalculations.calculateHeatMapData(
+                    this.reportData.filteredData,
+                    'department',
+                    { showShiftIndicators: hasPreviousData }
+                );
+                filteredDepartmentRow = filteredDepartmentHeatmapData.find(row => row.isOverall);
+            }
+            
             if (departmentRows.length <= departmentRowsPerPage) {
                 const singlePageRows = overallDepartmentRow
                     ? [overallDepartmentRow, ...departmentRows]
                     : departmentRows;
 
-                this.addSlide('heatmap', {
+                const deptHeatmapSlideData = {
                     title: 'Engagement by Department',
                     breakdownType: 'department',
                     rowData: singlePageRows,
                     showShiftIndicators: hasPreviousData
-                }, container, { pageNumber: slideNumber++ });
+                };
+                
+                if (filteredDepartmentRow) {
+                    deptHeatmapSlideData.filteredRow = filteredDepartmentRow;
+                }
+                
+                this.addSlide('heatmap', deptHeatmapSlideData, container, { pageNumber: slideNumber++ });
             } else {
                 const totalPages = Math.ceil(departmentRows.length / departmentRowsPerPage);
                 
@@ -376,12 +485,19 @@ class SlideGenerator {
                         ? [overallDepartmentRow, ...chunk]
                         : chunk;
                     
-                    this.addSlide('heatmap', {
+                    const deptHeatmapSlideData = {
                         title: `Engagement by Department ${totalPages > 1 ? `(${page + 1}/${totalPages})` : ''}`,
                         breakdownType: 'department',
                         rowData: pageData,
                         showShiftIndicators: hasPreviousData
-                    }, container, { pageNumber: slideNumber++ });
+                    };
+                    
+                    // Only add filtered row on first page
+                    if (page === 0 && filteredDepartmentRow) {
+                        deptHeatmapSlideData.filteredRow = filteredDepartmentRow;
+                    }
+                    
+                    this.addSlide('heatmap', deptHeatmapSlideData, container, { pageNumber: slideNumber++ });
                 }
             }
 

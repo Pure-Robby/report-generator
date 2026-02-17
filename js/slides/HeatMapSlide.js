@@ -196,7 +196,7 @@ class HeatMapSlide extends SlideBase {
         // Create tbody
         const tbody = document.createElement('tbody');
         
-        safeRows.forEach(row => {
+        safeRows.forEach((row, index) => {
             if (row && row.isSectionDivider) {
                 tbody.appendChild(this.createSectionDividerRow(row.label, columnCount));
                 return;
@@ -273,6 +273,12 @@ class HeatMapSlide extends SlideBase {
             }
             
             tbody.appendChild(tr);
+            
+            // Add filtered row immediately after overall row if filter is active
+            if (row.isOverall && this.data.filteredRow) {
+                const filteredTr = this.createFilteredRow(this.data.filteredRow, showShiftIndicators);
+                tbody.appendChild(filteredTr);
+            }
         });
         
         table.appendChild(tbody);
@@ -313,6 +319,83 @@ class HeatMapSlide extends SlideBase {
         cell.textContent = label || '';
         tr.appendChild(cell);
 
+        return tr;
+    }
+
+    createFilteredRow(filteredRow, showShiftIndicators) {
+        const tr = document.createElement('tr');
+        tr.style.backgroundColor = '#fff7ed'; // Light orange background
+        tr.style.fontWeight = '500';
+        
+        const isInsufficientSample = Boolean(Number(filteredRow.sampleSize) <= 3);
+        
+        // Row header
+        const rowHeader = document.createElement('th');
+        rowHeader.className = 'row-header-cell';
+        rowHeader.textContent = 'FILTERED SUBSET';
+        tr.appendChild(rowHeader);
+        
+        // Sample size cell
+        const sampleSizeCell = document.createElement('td');
+        sampleSizeCell.className = 'sample-size-cell';
+        sampleSizeCell.textContent = filteredRow.sampleSize;
+        tr.appendChild(sampleSizeCell);
+        
+        // Engagement Index cell
+        this.addDataCell(tr, filteredRow.engagementIndex, filteredRow.shifts ? filteredRow.shifts.engagementIndex : null, isInsufficientSample);
+        
+        // Arrow cell for Engagement Index
+        if (showShiftIndicators) {
+            this.addArrowCell(tr, filteredRow.engagementIndex, filteredRow.shifts ? filteredRow.shifts.engagementIndex : null, isInsufficientSample);
+        }
+        
+        // Core dimension cells (12 columns)
+        const coreScores = filteredRow.coreScores || [];
+        const coreShifts = filteredRow.shifts ? filteredRow.shifts.core || [] : [];
+        for (let i = 0; i < 12; i++) {
+            this.addDataCell(tr, coreScores[i], coreShifts[i], isInsufficientSample);
+            if (showShiftIndicators) {
+                this.addArrowCell(tr, coreScores[i], coreShifts[i], isInsufficientSample);
+            }
+        }
+        
+        // Separator cell
+        const sepCell = document.createElement('td');
+        sepCell.className = 'separator-col';
+        tr.appendChild(sepCell);
+        
+        // SEACOM INDEX cell
+        const seacomCell = document.createElement('td');
+        seacomCell.className = 'seacom-index-cell';
+        
+        if (isInsufficientSample) {
+            seacomCell.textContent = '';
+            seacomCell.classList.add('insufficient-sample');
+        } else if (filteredRow.seacomIndex !== null && filteredRow.seacomIndex !== undefined) {
+            seacomCell.textContent = filteredRow.seacomIndex + '%';
+            seacomCell.classList.add(ColorMapper.getCellClass(filteredRow.seacomIndex, 'engagement'));
+        } else {
+            seacomCell.textContent = '-';
+            seacomCell.style.backgroundColor = '#f8fafc';
+            seacomCell.style.color = '#94a3b8';
+        }
+        tr.appendChild(seacomCell);
+        
+        // Arrow cell for SEACOM INDEX
+        if (showShiftIndicators) {
+            this.addArrowCell(tr, filteredRow.seacomIndex, filteredRow.shifts ? filteredRow.shifts.seacomIndex : null, isInsufficientSample);
+        }
+        
+        // Additional dimension cells (6 columns)
+        const additionalScores = filteredRow.additionalScores || [];
+        const additionalShifts = filteredRow.shifts ? filteredRow.shifts.additional || [] : [];
+        for (let i = 0; i < 6; i++) {
+            this.addDataCell(tr, additionalScores[i], additionalShifts[i], isInsufficientSample);
+            if (showShiftIndicators) {
+                this.addArrowCell(tr, additionalScores[i], additionalShifts[i], isInsufficientSample);
+            }
+        }
+        
         return tr;
     }
 

@@ -115,6 +115,27 @@ class SatisfactionSlide extends SlideBase {
         `;
         tbody.appendChild(overallRow);
         
+        // Filtered row (if filter is active)
+        if (this.data.filteredData && this.data.filteredData.overall) {
+            const filteredRow = document.createElement('tr');
+            filteredRow.style.backgroundColor = '#fff7ed'; // Light orange background
+            filteredRow.style.fontWeight = '500';
+            
+            const filteredCurrent = this.data.filteredData.overall;
+            const filteredPrevious = (this.data.filteredPreviousData && this.data.filteredPreviousData.hasData) 
+                ? this.data.filteredPreviousData.overall 
+                : null;
+            
+            filteredRow.innerHTML = `
+                <td>FILTERED SUBSET</td>
+                <td>${filteredCurrent.dissatisfied}%</td>
+                <td>${filteredCurrent.satisfied}%</td>
+                <td>${filteredPrevious ? filteredPrevious.dissatisfied + '%' : ''}</td>
+                <td>${filteredPrevious ? filteredPrevious.satisfied + '%' : ''}</td>
+            `;
+            tbody.appendChild(filteredRow);
+        }
+        
         // Breakdown rows
         const breakdown = this.getMergedBreakdown();
         const startIndex = this.data.startIndex || 0;

@@ -5,6 +5,7 @@ class UploadManager {
         this.fileInput = document.getElementById('excel-file');
         this.uploadBtn = document.getElementById('upload-btn');
         this.isProcessing = false;
+        this.parsedData = null;
         
         this.init();
     }
@@ -12,15 +13,62 @@ class UploadManager {
     init() {
         this.form.addEventListener('submit', (e) => this.handleSubmit(e));
         this.fileInput.addEventListener('change', (e) => this.handleFileChange(e));
+        
+        // Filter control event listeners
+        const enableFilter = document.getElementById('enable-filter');
+        const filterDimension = document.getElementById('filter-dimension');
+        const filterValues = document.getElementById('filter-values');
+        
+        if (enableFilter) {
+            enableFilter.addEventListener('change', (e) => {
+                const filterControls = document.getElementById('filter-controls');
+                if (filterControls) {
+                    filterControls.style.display = e.target.checked ? 'block' : 'none';
+                }
+            });
+        }
+        
+        if (filterDimension) {
+            filterDimension.addEventListener('change', () => {
+                this.populateFilterValues();
+            });
+        }
+        
+        if (filterValues) {
+            filterValues.addEventListener('change', () => {
+                this.updateFilterFeedback();
+            });
+        }
     }
 
-    handleFileChange(e) {
+    async handleFileChange(e) {
         const file = e.target.files[0];
         if (file) {
             const fileName = document.querySelector('.file-name');
             if (fileName) {
                 fileName.textContent = file.name;
                 fileName.style.display = 'block';
+            }
+            
+            // Parse file to enable filter controls
+            if (this.validateFile(file)) {
+                try {
+                    showLoading();
+                    this.parsedData = await this.processExcelFile(file);
+                    hideLoading();
+                    
+                    // Show filter section
+                    const filterSection = document.getElementById('filter-section');
+                    if (filterSection) {
+                        filterSection.style.display = 'block';
+                    }
+                    
+                    showToast('File loaded successfully. You can now configure filters.', 'success');
+                } catch (error) {
+                    hideLoading();
+                    console.error('Error parsing file for filters:', error);
+                    showToast('File loaded but filter setup failed: ' + error.message, 'warning');
+                }
             }
         }
     }
@@ -51,12 +99,44 @@ class UploadManager {
         showLoading();
 
         try {
-            const data = await this.processExcelFile(file);
+            // Use already parsed data or parse now
+            const data = this.parsedData || await this.processExcelFile(file);
+            
+            // Check if filtering is enabled
+            const enableFilter = document.getElementById('enable-filter');
+            const isFilterEnabled = enableFilter && enableFilter.checked;
+            
+            let filterCriteria = null;
+            let filteredData = null;
+            
+            if (isFilterEnabled) {
+                const filterDimension = document.getElementById('filter-dimension').value;
+                const filterValuesSelect = document.getElementById('filter-values');
+                const filterValues = Array.from(filterValuesSelect.selectedOptions).map(opt => opt.value);
+                
+                if (!filterDimension || filterValues.length === 0) {
+                    showToast('Please select filter dimension and values', 'error');
+                    this.isProcessing = false;
+                    this.uploadBtn.disabled = false;
+                    hideLoading();
+                    return;
+                }
+                
+                filterCriteria = {
+                    dimension: filterDimension,
+                    values: filterValues
+                };
+                
+                // Apply filters to create filtered dataset
+                filteredData = this.applyFilters(data, filterCriteria);
+            }
             
             const reportData = {
                 surveyName,
                 reportName,
                 data,
+                filteredData,
+                filterCriteria,
                 timestamp: new Date().toISOString()
             };
 
@@ -99,6 +179,154 @@ class UploadManager {
         }
 
         return true;
+    }
+
+    populateFilterValues() {
+        if (!this.parsedData || !this.parsedData.current) {
+            return;
+        }
+        
+        const filterDimension = document.getElementById('filter-dimension').value;
+        const filterValuesSelect = document.getElementById('filter-values');
+        
+        if (!filterDimension || !filterValuesSelect) {
+            return;
+        }
+        
+        // Clear existing options
+        filterValuesSelect.innerHTML = '';
+        
+        // Map dimension to column index
+        const dimensionColumnMap = {
+            location: 3,     // Column D
+            department: 1,   // Column B
+            costCenter: 2    // Column C
+        };
+        
+        const columnIndex = dimensionColumnMap[filterDimension];
+        if (columnIndex === undefined) {
+            return;
+        }
+        
+        // Extract unique values from the column
+        const uniqueValues = new Set();
+        const rows = this.parsedData.current.rows || [];
+        
+        rows.forEach(row => {
+            const value = row[columnIndex];
+            if (value && value.toString().trim() !== '') {
+                uniqueValues.add(value.toString().trim());
+            }
+        });
+        
+        // Sort and add options
+        const sortedValues = Array.from(uniqueValues).sort();
+        sortedValues.forEach(value => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = value;
+            filterValuesSelect.appendChild(option);
+        });
+        
+        // Reset feedback
+        const feedback = document.getElementById('filter-feedback');
+        if (feedback) {
+            feedback.style.display = 'none';
+        }
+    }
+    
+    updateFilterFeedback() {
+        if (!this.parsedData || !this.parsedData.current) {
+            return;
+        }
+        
+        const filterDimension = document.getElementById('filter-dimension').value;
+        const filterValuesSelect = document.getElementById('filter-values');
+        const filterValues = Array.from(filterValuesSelect.selectedOptions).map(opt => opt.value);
+        
+        if (!filterDimension || filterValues.length === 0) {
+            const feedback = document.getElementById('filter-feedback');
+            if (feedback) {
+                feedback.style.display = 'none';
+            }
+            return;
+        }
+        
+        // Count matching responses
+        const dimensionColumnMap = {
+            location: 3,
+            department: 1,
+            costCenter: 2
+        };
+        
+        const columnIndex = dimensionColumnMap[filterDimension];
+        const rows = this.parsedData.current.rows || [];
+        
+        const matchingCount = rows.filter(row => {
+            const value = row[columnIndex];
+            return value && filterValues.includes(value.toString().trim());
+        }).length;
+        
+        // Update feedback
+        const feedback = document.getElementById('filter-feedback');
+        const countSpan = document.getElementById('filter-count');
+        
+        if (feedback && countSpan) {
+            countSpan.textContent = matchingCount;
+            feedback.style.display = 'block';
+        }
+    }
+    
+    applyFilters(data, filterCriteria) {
+        if (!filterCriteria || !data || !data.current) {
+            return null;
+        }
+        
+        const { dimension, values } = filterCriteria;
+        
+        // Map dimension to column index
+        const dimensionColumnMap = {
+            location: 3,
+            department: 1,
+            costCenter: 2
+        };
+        
+        const columnIndex = dimensionColumnMap[dimension];
+        if (columnIndex === undefined) {
+            return null;
+        }
+        
+        // Filter current year data
+        const filteredCurrent = {
+            ...data.current,
+            rows: (data.current.rows || []).filter(row => {
+                const value = row[columnIndex];
+                return value && values.includes(value.toString().trim());
+            }),
+            totalResponses: 0 // Will be recalculated
+        };
+        filteredCurrent.totalResponses = filteredCurrent.rows.length;
+        
+        // Filter previous year data if it exists
+        let filteredPrevious = null;
+        if (data.previous && data.previous.rows) {
+            filteredPrevious = {
+                ...data.previous,
+                rows: (data.previous.rows || []).filter(row => {
+                    const value = row[columnIndex];
+                    return value && values.includes(value.toString().trim());
+                }),
+                totalResponses: 0
+            };
+            filteredPrevious.totalResponses = filteredPrevious.rows.length;
+        }
+        
+        return {
+            current: filteredCurrent,
+            previous: filteredPrevious,
+            currentYearLabel: data.currentYearLabel,
+            previousYearLabel: data.previousYearLabel
+        };
     }
 
     async processExcelFile(file) {
