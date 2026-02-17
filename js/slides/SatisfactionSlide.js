@@ -45,7 +45,15 @@ class SatisfactionSlide extends SlideBase {
         // Question text
         const questionText = document.createElement('p');
         questionText.className = 'satisfaction-question';
-        questionText.textContent = 'Overall, I would rate my level of satisfaction or dissatisfaction with the company as:';
+        const baseQuestion = 'Overall, I would rate my level of satisfaction or dissatisfaction with the company as:';
+        
+        // Add filtered indicator if filtered data is being shown in the chart
+        const hasFilteredData = this.data.filteredData && this.data.filteredData.overall;
+        if (hasFilteredData) {
+            questionText.innerHTML = baseQuestion + '<br><small style="color: #f97316; font-weight: 600; margin-top: 8px; display: inline-block;">📊 Chart shows filtered subset data</small>';
+        } else {
+            questionText.textContent = baseQuestion;
+        }
         body.appendChild(questionText);
         
         // Stacked bar chart
@@ -140,7 +148,11 @@ class SatisfactionSlide extends SlideBase {
         const breakdown = this.getMergedBreakdown();
         const startIndex = this.data.startIndex || 0;
         const maxRows = this.data.maxRows || 13;
-        const endIndex = Math.min(startIndex + maxRows - 1, breakdown.length); // -1 because overall takes one row
+        
+        // Calculate available rows for breakdown (subtract fixed rows: overall + filtered if present)
+        const fixedRows = this.data.filteredData ? 2 : 1; // 2 if filtered (overall + filtered), 1 if not (just overall)
+        const availableRowsForBreakdown = maxRows - fixedRows;
+        const endIndex = Math.min(startIndex + availableRowsForBreakdown, breakdown.length);
         
         for (let i = startIndex; i < endIndex; i++) {
             const item = breakdown[i];
@@ -216,9 +228,16 @@ class SatisfactionSlide extends SlideBase {
             Chart.register(ChartDataLabels);
         }
         
-        const currentData = this.data.currentData.overall;
-        const previousHasData = this.data.previousData && this.data.previousData.hasData;
-        const previousOverall = previousHasData ? this.data.previousData.overall : null;
+        // Check if filtered data exists - if so, use filtered data; otherwise use overall
+        const hasFilteredData = this.data.filteredData && this.data.filteredData.overall;
+        
+        // Select which data to display in the chart
+        const displayCurrentData = hasFilteredData ? this.data.filteredData.overall : this.data.currentData.overall;
+        const displayPreviousData = hasFilteredData 
+            ? (this.data.filteredPreviousData && this.data.filteredPreviousData.hasData ? this.data.filteredPreviousData.overall : null)
+            : (this.data.previousData && this.data.previousData.hasData ? this.data.previousData.overall : null);
+        
+        const hasPreviousData = displayPreviousData !== null;
 
         const yearLabels = this.data.yearLabels || {};
         const currentYearLabel = yearLabels.current || '2025';
@@ -232,8 +251,8 @@ class SatisfactionSlide extends SlideBase {
                     {
                         label: 'Dissatisfied',
                         data: [
-                            currentData.dissatisfied,
-                            previousOverall ? previousOverall.dissatisfied : null
+                            displayCurrentData.dissatisfied,
+                            hasPreviousData ? displayPreviousData.dissatisfied : null
                         ],
                         backgroundColor: '#ef4444',
                         borderColor: '#ef4444',
@@ -251,8 +270,8 @@ class SatisfactionSlide extends SlideBase {
                     {
                         label: 'Satisfied',
                         data: [
-                            currentData.satisfied,
-                            previousOverall ? previousOverall.satisfied : null
+                            displayCurrentData.satisfied,
+                            hasPreviousData ? displayPreviousData.satisfied : null
                         ],
                         backgroundColor: '#10b981',
                         borderColor: '#10b981',

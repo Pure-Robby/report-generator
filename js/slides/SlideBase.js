@@ -118,7 +118,8 @@ class SlideBase {
     footerLeft.className = 'slide-page-footer-left';
     footerLeft.textContent =
       this.options.footerText ||
-      'Powered by Pure Survey (PTY) Ltd © 2025. Rights Reserved';
+      'Powered by Pure Survey (PTY) Ltd © <span class="current-year"></span>. Rights Reserved';
+    footerLeft.innerHTML = footerLeft.innerHTML.replace('<span class="current-year"></span>', new Date().getFullYear());
 
     const footerRight = document.createElement('div');
     footerRight.className = 'slide-page-footer-right';

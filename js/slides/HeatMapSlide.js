@@ -324,8 +324,7 @@ class HeatMapSlide extends SlideBase {
 
     createFilteredRow(filteredRow, showShiftIndicators) {
         const tr = document.createElement('tr');
-        tr.style.backgroundColor = '#fff7ed'; // Light orange background
-        tr.style.fontWeight = '500';
+        tr.className = 'filtered-subset-row'; // Add class for CSS styling
         
         const isInsufficientSample = Boolean(Number(filteredRow.sampleSize) <= 3);
         

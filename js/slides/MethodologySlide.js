@@ -37,12 +37,29 @@ class MethodologySlide extends SlideBase {
             const dimensionLabels = {
                 location: 'Location',
                 department: 'Department',
-                costCenter: 'Cost Center'
+                costCenter: 'Cost Center',
+                gender: 'Gender',
+                race: 'Race',
+                age: 'Age',
+                tenure: 'Tenure (LoS)'
             };
-            const dimensionLabel = dimensionLabels[this.data.filterCriteria.dimension] || this.data.filterCriteria.dimension;
-            const valuesList = this.data.filterCriteria.values.join(', ');
             
-            filteredSection = `<p class="mb-3"><strong>Filtered Subset:</strong> ${this.data.filteredResponses} responses matching ${dimensionLabel}: ${valuesList}</p>`;
+            // Build filter description from demographics object
+            const demographics = this.data.filterCriteria.demographics || {};
+            const filterParts = [];
+            
+            Object.keys(demographics).forEach(dimension => {
+                const label = dimensionLabels[dimension] || dimension;
+                const values = demographics[dimension];
+                if (values && values.length > 0) {
+                    filterParts.push(`${label}: ${values.join(', ')}`);
+                }
+            });
+            
+            const filterDescription = filterParts.join(' | ');
+            
+            //filteredSection = `<p class="mb-3"><strong>Filtered Subset:</strong> ${this.data.filteredResponses} responses matching ${filterDescription}</p>`;
+            filteredSection = `<strong>Filtered Subset:</strong> ${this.data.filteredResponses} responses matching ${filterDescription}`;
         }
         
         body.innerHTML = `
@@ -50,8 +67,11 @@ class MethodologySlide extends SlideBase {
             <p class="mb-3">Pure Survey is a member of the South African Marketing Research Association (SAMRA) and abides by the ethical standards set by SAMRA, of which confidentiality is a key stipulation. All survey responses are hosted by Pure Survey. All data that is collected and reported on by Pure Survey is in line with SEACOM's data protection requirements.</p>
             
             <h3>Surveying Methods</h3>
-            <p class="mb-3">The Employee Engagement Survey was conducted electronically via the internet and email. The survey was distributed by means of an email invitation, which contained a clickable link directing participants to the survey hosted on Pure Survey's server. There were ${this.data.uniqueResponses} unique responses completed out of the total headcount of ${this.data.totalHeadcount} which equates to a response rate of ${this.data.responseRate}%</p>
-            ${filteredSection}
+            <p class="mb-3">
+             The Employee Engagement Survey was conducted electronically via the internet and email. The survey was distributed by means of an email invitation, which contained a clickable link directing participants to the survey hosted on Pure Survey's server. There were ${this.data.uniqueResponses} unique responses completed out of the total headcount of ${this.data.totalHeadcount} which equates to a response rate of ${this.data.responseRate}%.
+             ${filteredSection}
+             </p>
+            
 
 
             <h3>Glossary</h3>

@@ -16,28 +16,55 @@ class UploadManager {
         
         // Filter control event listeners
         const enableFilter = document.getElementById('enable-filter');
-        const filterDimension = document.getElementById('filter-dimension');
-        const filterValues = document.getElementById('filter-values');
         
         if (enableFilter) {
+            // Check initial state on page load (in case browser remembered the checked state)
+            const filterControls = document.getElementById('filter-controls');
+            if (filterControls && enableFilter.checked) {
+                filterControls.style.display = 'block';
+            }
+            
             enableFilter.addEventListener('change', (e) => {
-                const filterControls = document.getElementById('filter-controls');
                 if (filterControls) {
                     filterControls.style.display = e.target.checked ? 'block' : 'none';
                 }
             });
         }
         
-        if (filterDimension) {
-            filterDimension.addEventListener('change', () => {
-                this.populateFilterValues();
-            });
-        }
-        
-        if (filterValues) {
-            filterValues.addEventListener('change', () => {
+        // Dimension toggle checkboxes
+        document.querySelectorAll('.dimension-toggle').forEach(checkbox => {
+            // Check initial state on page load (in case browser remembered the checked state)
+            const dimension = checkbox.dataset.dimension;
+            const select = document.querySelector(`.dimension-values[data-dimension="${dimension}"]`);
+            if (select && checkbox.checked) {
+                select.disabled = false;
+            }
+            
+            checkbox.addEventListener('change', (e) => {
+                const dimension = e.target.dataset.dimension;
+                const select = document.querySelector(`.dimension-values[data-dimension="${dimension}"]`);
+                if (select) {
+                    select.disabled = !e.target.checked;
+                    if (!e.target.checked) {
+                        // Clear selection when disabled
+                        select.querySelectorAll('option').forEach(opt => opt.selected = false);
+                    }
+                }
                 this.updateFilterFeedback();
             });
+        });
+        
+        // Value selection dropdowns
+        document.querySelectorAll('.dimension-values').forEach(select => {
+            select.addEventListener('change', () => {
+                this.updateFilterFeedback();
+            });
+        });
+        
+        // If data is already loaded (from previous upload before refresh), populate filters
+        if (this.parsedData) {
+            this.populateFilterValues();
+            this.updateFilterFeedback();
         }
     }
 
@@ -56,6 +83,9 @@ class UploadManager {
                     showLoading();
                     this.parsedData = await this.processExcelFile(file);
                     hideLoading();
+                    
+                    // Populate all filter dropdowns with data from Excel
+                    this.populateFilterValues();
                     
                     // Show filter section
                     const filterSection = document.getElementById('filter-section');
@@ -110,12 +140,10 @@ class UploadManager {
             let filteredData = null;
             
             if (isFilterEnabled) {
-                const filterDimension = document.getElementById('filter-dimension').value;
-                const filterValuesSelect = document.getElementById('filter-values');
-                const filterValues = Array.from(filterValuesSelect.selectedOptions).map(opt => opt.value);
+                const activeFilters = this.getActiveFilters();
                 
-                if (!filterDimension || filterValues.length === 0) {
-                    showToast('Please select filter dimension and values', 'error');
+                if (Object.keys(activeFilters).length === 0) {
+                    showToast('Please select at least one filter dimension and values', 'error');
                     this.isProcessing = false;
                     this.uploadBtn.disabled = false;
                     hideLoading();
@@ -123,8 +151,8 @@ class UploadManager {
                 }
                 
                 filterCriteria = {
-                    dimension: filterDimension,
-                    values: filterValues
+                    demographics: activeFilters,
+                    logic: 'AND'
                 };
                 
                 // Apply filters to create filtered dataset
@@ -186,46 +214,46 @@ class UploadManager {
             return;
         }
         
-        const filterDimension = document.getElementById('filter-dimension').value;
-        const filterValuesSelect = document.getElementById('filter-values');
-        
-        if (!filterDimension || !filterValuesSelect) {
-            return;
-        }
-        
-        // Clear existing options
-        filterValuesSelect.innerHTML = '';
-        
-        // Map dimension to column index
+        // Map all dimensions to column indices
         const dimensionColumnMap = {
             location: 3,     // Column D
             department: 1,   // Column B
-            costCenter: 2    // Column C
+            costCenter: 2,   // Column C
+            gender: 4,       // Column E
+            race: 5,         // Column F
+            age: 6,          // Column G
+            tenure: 7        // Column H (LoS Group)
         };
         
-        const columnIndex = dimensionColumnMap[filterDimension];
-        if (columnIndex === undefined) {
-            return;
-        }
-        
-        // Extract unique values from the column
-        const uniqueValues = new Set();
         const rows = this.parsedData.current.rows || [];
         
-        rows.forEach(row => {
-            const value = row[columnIndex];
-            if (value && value.toString().trim() !== '') {
-                uniqueValues.add(value.toString().trim());
-            }
-        });
-        
-        // Sort and add options
-        const sortedValues = Array.from(uniqueValues).sort();
-        sortedValues.forEach(value => {
-            const option = document.createElement('option');
-            option.value = value;
-            option.textContent = value;
-            filterValuesSelect.appendChild(option);
+        // Populate each dimension's dropdown
+        Object.keys(dimensionColumnMap).forEach(dimension => {
+            const columnIndex = dimensionColumnMap[dimension];
+            const select = document.querySelector(`.dimension-values[data-dimension="${dimension}"]`);
+            
+            if (!select) return;
+            
+            // Clear existing options except the disabled placeholder
+            select.innerHTML = '';
+            
+            // Extract unique values from the column
+            const uniqueValues = new Set();
+            rows.forEach(row => {
+                const value = row[columnIndex];
+                if (value && value.toString().trim() !== '') {
+                    uniqueValues.add(value.toString().trim());
+                }
+            });
+            
+            // Sort and add options
+            const sortedValues = Array.from(uniqueValues).sort();
+            sortedValues.forEach(value => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                select.appendChild(option);
+            });
         });
         
         // Reset feedback
@@ -240,11 +268,10 @@ class UploadManager {
             return;
         }
         
-        const filterDimension = document.getElementById('filter-dimension').value;
-        const filterValuesSelect = document.getElementById('filter-values');
-        const filterValues = Array.from(filterValuesSelect.selectedOptions).map(opt => opt.value);
+        // Collect all enabled dimensions and their selected values
+        const activeFilters = this.getActiveFilters();
         
-        if (!filterDimension || filterValues.length === 0) {
+        if (Object.keys(activeFilters).length === 0) {
             const feedback = document.getElementById('filter-feedback');
             if (feedback) {
                 feedback.style.display = 'none';
@@ -252,19 +279,28 @@ class UploadManager {
             return;
         }
         
-        // Count matching responses
+        // Count matching responses using multi-dimensional filter
+        const rows = this.parsedData.current.rows || [];
         const dimensionColumnMap = {
             location: 3,
             department: 1,
-            costCenter: 2
+            costCenter: 2,
+            gender: 4,
+            race: 5,
+            age: 6,
+            tenure: 7
         };
         
-        const columnIndex = dimensionColumnMap[filterDimension];
-        const rows = this.parsedData.current.rows || [];
-        
         const matchingCount = rows.filter(row => {
-            const value = row[columnIndex];
-            return value && filterValues.includes(value.toString().trim());
+            // Check if row matches ALL active filters (AND logic)
+            return Object.keys(activeFilters).every(dimension => {
+                const columnIndex = dimensionColumnMap[dimension];
+                const value = row[columnIndex];
+                const allowedValues = activeFilters[dimension];
+                
+                // Row must have a value in this column that matches one of the selected values
+                return value && allowedValues.includes(value.toString().trim());
+            });
         }).length;
         
         // Update feedback
@@ -277,32 +313,66 @@ class UploadManager {
         }
     }
     
+    getActiveFilters() {
+        const activeFilters = {};
+        
+        document.querySelectorAll('.dimension-toggle:checked').forEach(checkbox => {
+            const dimension = checkbox.dataset.dimension;
+            const select = document.querySelector(`.dimension-values[data-dimension="${dimension}"]`);
+            
+            if (select && !select.disabled) {
+                const selectedValues = Array.from(select.selectedOptions)
+                    .map(opt => opt.value)
+                    .filter(val => val); // Remove empty values
+                
+                if (selectedValues.length > 0) {
+                    activeFilters[dimension] = selectedValues;
+                }
+            }
+        });
+        
+        return activeFilters;
+    }
+    
     applyFilters(data, filterCriteria) {
         if (!filterCriteria || !data || !data.current) {
             return null;
         }
         
-        const { dimension, values } = filterCriteria;
+        const { demographics, logic } = filterCriteria;
+        
+        if (!demographics || Object.keys(demographics).length === 0) {
+            return null;
+        }
         
         // Map dimension to column index
         const dimensionColumnMap = {
             location: 3,
             department: 1,
-            costCenter: 2
+            costCenter: 2,
+            gender: 4,
+            race: 5,
+            age: 6,
+            tenure: 7
         };
         
-        const columnIndex = dimensionColumnMap[dimension];
-        if (columnIndex === undefined) {
-            return null;
-        }
+        // Filter function that checks all dimensions (AND logic)
+        const matchesFilter = (row) => {
+            return Object.keys(demographics).every(dimension => {
+                const columnIndex = dimensionColumnMap[dimension];
+                if (columnIndex === undefined) return true; // Skip unknown dimensions
+                
+                const value = row[columnIndex];
+                const allowedValues = demographics[dimension];
+                
+                return value && allowedValues.includes(value.toString().trim());
+            });
+        };
         
         // Filter current year data
         const filteredCurrent = {
             ...data.current,
-            rows: (data.current.rows || []).filter(row => {
-                const value = row[columnIndex];
-                return value && values.includes(value.toString().trim());
-            }),
+            rows: (data.current.rows || []).filter(matchesFilter),
             totalResponses: 0 // Will be recalculated
         };
         filteredCurrent.totalResponses = filteredCurrent.rows.length;
@@ -312,10 +382,7 @@ class UploadManager {
         if (data.previous && data.previous.rows) {
             filteredPrevious = {
                 ...data.previous,
-                rows: (data.previous.rows || []).filter(row => {
-                    const value = row[columnIndex];
-                    return value && values.includes(value.toString().trim());
-                }),
+                rows: (data.previous.rows || []).filter(matchesFilter),
                 totalResponses: 0
             };
             filteredPrevious.totalResponses = filteredPrevious.rows.length;

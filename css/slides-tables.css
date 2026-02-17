@@ -377,6 +377,13 @@ table thead th {
   color: white !important;
 }
 
+/* Filtered subset row cell highlight (second row when filter is active) */
+.heatmap-table tbody tr.filtered-subset-row > *:nth-child(-n + 2) {
+  background-color: #fb923c !important;
+  color: white !important;
+  font-weight: 600;
+}
+
 /* Row header cells */
 .heatmap-table tbody th.row-header-cell {
   background-color: #f8fafc;

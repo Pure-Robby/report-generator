@@ -207,8 +207,12 @@ class SlideGenerator {
                 filteredDepartmentData = DataCalculations.calculateSatisfactionData(this.reportData.filteredData, 'department');
             }
             
-            if (departmentBreakdown.length <= maxRowsPerSlide - 1) {
-                // Fits on one slide (-1 because overall row takes one space)
+            // Calculate how many fixed rows we have (overall + filtered if present)
+            const fixedRows = filteredDepartmentData ? 2 : 1;
+            const availableRowsForBreakdown = maxRowsPerSlide - fixedRows;
+            
+            if (departmentBreakdown.length <= availableRowsForBreakdown) {
+                // Fits on one slide
                 const deptSlideData = {
                     title: 'Satisfaction - Department',
                     dimension: 'department',
@@ -227,7 +231,7 @@ class SlideGenerator {
                 this.addSlide('satisfaction', deptSlideData, container, { pageNumber: slideNumber++ });
             } else {
                 // Need pagination - split into multiple slides
-                const firstPageRows = maxRowsPerSlide - 1; // -1 for overall row
+                const firstPageRows = availableRowsForBreakdown;
                 
                 // First page
                 const deptSlideData1 = {
@@ -248,8 +252,8 @@ class SlideGenerator {
                 
                 this.addSlide('satisfaction', deptSlideData1, container, { pageNumber: slideNumber++ });
                 
-                // Second page (continuation) - no filtered row on continuation pages
-                this.addSlide('satisfaction', {
+                // Second page (continuation) - also include filtered row
+                const deptSlideData2 = {
                     title: 'Satisfaction - Department (Continued)',
                     dimension: 'department',
                     currentData: departmentData.current,
@@ -258,7 +262,14 @@ class SlideGenerator {
                     startIndex: firstPageRows,
                     maxRows: maxRowsPerSlide,
                     yearLabels
-                }, container, { pageNumber: slideNumber++ });
+                };
+                
+                if (filteredDepartmentData) {
+                    deptSlideData2.filteredData = filteredDepartmentData.current;
+                    deptSlideData2.filteredPreviousData = filteredDepartmentData.previous;
+                }
+                
+                this.addSlide('satisfaction', deptSlideData2, container, { pageNumber: slideNumber++ });
             }
         } catch (error) {
             console.error('Failed to generate satisfaction slides:', error);
@@ -443,8 +454,7 @@ class SlideGenerator {
             
             const overallDepartmentRow = departmentHeatmapData.find(row => row.isOverall) || null;
             const departmentRows = departmentHeatmapData.filter(row => !row.isOverall);
-            const maxRowsPerSlide = 9; // Overall row + 10 department rows
-            const departmentRowsPerPage = maxRowsPerSlide - 1;
+            const maxRowsPerSlide = 11; // Total rows per slide
             
             // Prepare filtered row if filter is active
             let filteredDepartmentRow = null;
@@ -456,6 +466,10 @@ class SlideGenerator {
                 );
                 filteredDepartmentRow = filteredDepartmentHeatmapData.find(row => row.isOverall);
             }
+            
+            // Calculate how many fixed rows we have (overall + filtered if present)
+            const fixedRows = filteredDepartmentRow ? 2 : 1;
+            const departmentRowsPerPage = maxRowsPerSlide - fixedRows;
             
             if (departmentRows.length <= departmentRowsPerPage) {
                 const singlePageRows = overallDepartmentRow
@@ -492,8 +506,8 @@ class SlideGenerator {
                         showShiftIndicators: hasPreviousData
                     };
                     
-                    // Only add filtered row on first page
-                    if (page === 0 && filteredDepartmentRow) {
+                    // Add filtered row on all pages
+                    if (filteredDepartmentRow) {
                         deptHeatmapSlideData.filteredRow = filteredDepartmentRow;
                     }
                     

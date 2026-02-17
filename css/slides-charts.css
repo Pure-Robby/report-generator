@@ -55,6 +55,10 @@
   background-color: #000000;
 }
 
+.chart-legend-color.orange {
+  background-color: #fb923c;
+}
+
 /* Chart Title and Subtitle */
 .chart-title-container {
   text-align: left;

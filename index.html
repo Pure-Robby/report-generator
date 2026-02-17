@@ -75,29 +75,94 @@
             </small>
             
             <div id="filter-controls" style="display: none; margin-top: 15px; padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; background-color: #f9fafb;">
-              <div class="form-group">
-                <label for="filter-dimension">Filter By *</label>
-                <select id="filter-dimension" name="filterDimension" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
-                  <option value="">Select dimension...</option>
-                  <option value="location">Location</option>
-                  <option value="department">Department</option>
-                  <option value="costCenter">Cost Center</option>
+              <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #374151;">Demographics Filters</h4>
+              <small class="text-muted" style="display: block; margin-bottom: 8px;">
+                Select one or more dimensions to filter by. All selected filters must match (AND logic).
+              </small>
+              <small class="text-muted" style="display: block; margin-bottom: 15px; font-style: italic; color: #6b7280;">
+                💡 Hold Ctrl (Windows) or Cmd (Mac) to select multiple values within each dimension.
+              </small>
+              
+              <!-- Location Filter -->
+              <div class="filter-dimension-group" style="margin-bottom: 15px; padding: 12px; background-color: #ffffff; border-radius: 6px; border: 1px solid #e5e7eb;">
+                <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                  <input type="checkbox" class="dimension-toggle" data-dimension="location" style="margin-right: 8px;" />
+                  <strong>Location</strong>
+                </label>
+                <select class="dimension-values" data-dimension="location" multiple disabled style="width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px;">
+                  <option value="" disabled>Enable this dimension to select values</option>
                 </select>
               </div>
               
-              <div class="form-group">
-                <label for="filter-values">Select Values *</label>
-                <select id="filter-values" name="filterValues" multiple style="width: 100%; min-height: 120px; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
-                  <option value="" disabled>Upload file first to see available values</option>
+              <!-- Department Filter -->
+              <div class="filter-dimension-group" style="margin-bottom: 15px; padding: 12px; background-color: #ffffff; border-radius: 6px; border: 1px solid #e5e7eb;">
+                <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                  <input type="checkbox" class="dimension-toggle" data-dimension="department" style="margin-right: 8px;" />
+                  <strong>Department</strong>
+                </label>
+                <select class="dimension-values" data-dimension="department" multiple disabled style="width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px;">
+                  <option value="" disabled>Enable this dimension to select values</option>
                 </select>
-                <small class="text-muted" style="display: block; margin-top: 5px;">
-                  Hold Ctrl (Windows) or Cmd (Mac) to select multiple values
-                </small>
               </div>
               
-              <div id="filter-feedback" style="margin-top: 10px; padding: 8px; background-color: #eff6ff; border-radius: 6px; display: none;">
-                <small style="color: #1e40af; font-weight: 500;">
-                  <span id="filter-count">0</span> responses match the selected filter
+              <!-- Cost Center Filter -->
+              <div class="filter-dimension-group" style="margin-bottom: 15px; padding: 12px; background-color: #ffffff; border-radius: 6px; border: 1px solid #e5e7eb;">
+                <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                  <input type="checkbox" class="dimension-toggle" data-dimension="costCenter" style="margin-right: 8px;" />
+                  <strong>Cost Center</strong>
+                </label>
+                <select class="dimension-values" data-dimension="costCenter" multiple disabled style="width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px;">
+                  <option value="" disabled>Enable this dimension to select values</option>
+                </select>
+              </div>
+              
+              <!-- Gender Filter -->
+              <div class="filter-dimension-group" style="margin-bottom: 15px; padding: 12px; background-color: #ffffff; border-radius: 6px; border: 1px solid #e5e7eb;">
+                <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                  <input type="checkbox" class="dimension-toggle" data-dimension="gender" style="margin-right: 8px;" />
+                  <strong>Gender</strong>
+                </label>
+                <select class="dimension-values" data-dimension="gender" multiple disabled style="width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px;">
+                  <option value="" disabled>Enable this dimension to select values</option>
+                </select>
+              </div>
+              
+              <!-- Race Filter -->
+              <div class="filter-dimension-group" style="margin-bottom: 15px; padding: 12px; background-color: #ffffff; border-radius: 6px; border: 1px solid #e5e7eb;">
+                <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                  <input type="checkbox" class="dimension-toggle" data-dimension="race" style="margin-right: 8px;" />
+                  <strong>Race</strong>
+                </label>
+                <select class="dimension-values" data-dimension="race" multiple disabled style="width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px;">
+                  <option value="" disabled>Enable this dimension to select values</option>
+                </select>
+              </div>
+              
+              <!-- Age Filter -->
+              <div class="filter-dimension-group" style="margin-bottom: 15px; padding: 12px; background-color: #ffffff; border-radius: 6px; border: 1px solid #e5e7eb;">
+                <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                  <input type="checkbox" class="dimension-toggle" data-dimension="age" style="margin-right: 8px;" />
+                  <strong>Age</strong>
+                </label>
+                <select class="dimension-values" data-dimension="age" multiple disabled style="width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px;">
+                  <option value="" disabled>Enable this dimension to select values</option>
+                </select>
+              </div>
+              
+              <!-- Tenure Filter -->
+              <div class="filter-dimension-group" style="margin-bottom: 15px; padding: 12px; background-color: #ffffff; border-radius: 6px; border: 1px solid #e5e7eb;">
+                <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                  <input type="checkbox" class="dimension-toggle" data-dimension="tenure" style="margin-right: 8px;" />
+                  <strong>Tenure (Length of Service)</strong>
+                </label>
+                <select class="dimension-values" data-dimension="tenure" multiple disabled style="width: 100%; min-height: 80px; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px;">
+                  <option value="" disabled>Enable this dimension to select values</option>
+                </select>
+              </div>
+              
+              <div id="filter-feedback" style="margin-top: 15px; padding: 12px; background-color: #eff6ff; border-radius: 6px; display: none;">
+                <small style="color: #1e40af; font-weight: 600; font-size: 14px;">
+                  💡 <span id="filter-count">0</span> responses match all selected filters
                 </small>
               </div>
             </div>

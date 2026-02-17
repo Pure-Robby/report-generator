@@ -240,6 +240,7 @@ class BarChartSlide extends SlideBase {
         legend.className = 'chart-legend';
         
         const hasPreviousData = this.data.previous && this.data.previous.length > 0;
+        const hasFilteredData = this.data.filtered && this.data.filtered.length > 0;
         
         let legendHTML = `
             <div class="chart-legend-item">
@@ -253,6 +254,15 @@ class BarChartSlide extends SlideBase {
                 <div class="chart-legend-item">
                     <div class="chart-legend-color black"></div>
                     <span>${this.data.previousLabel || '2023 Scores'}</span>
+                </div>
+            `;
+        }
+        
+        if (hasFilteredData) {
+            legendHTML += `
+                <div class="chart-legend-item">
+                    <div class="chart-legend-color orange"></div>
+                    <span>Filtered Subset</span>
                 </div>
             `;
         }
