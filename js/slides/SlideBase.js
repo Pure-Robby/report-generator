@@ -116,10 +116,10 @@ class SlideBase {
 
     const footerLeft = document.createElement('div');
     footerLeft.className = 'slide-page-footer-left';
-    footerLeft.textContent =
+    const footerStr =
       this.options.footerText ||
-      'Powered by Pure Survey (PTY) Ltd © <span class="current-year"></span>. Rights Reserved';
-    footerLeft.innerHTML = footerLeft.innerHTML.replace('<span class="current-year"></span>', new Date().getFullYear());
+      `Powered by Pure Survey (PTY) Ltd © ${new Date().getFullYear()}. Rights Reserved`;
+    footerLeft.innerHTML = footerStr;
 
     const footerRight = document.createElement('div');
     footerRight.className = 'slide-page-footer-right';

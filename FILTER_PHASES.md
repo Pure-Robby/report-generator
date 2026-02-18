@@ -30,7 +30,7 @@ Enable users to filter survey responses by any combination of demographic dimens
 
 - **Report Display**: Filtered results appear alongside overall results:
   - Methodology slide shows filter criteria and response count
-  - Satisfaction slides show "FILTERED SUBSET" row after overall
+  - Satisfaction slides show "FILTERED REPORT" row after overall
   - Bar charts show filtered data as orange bars
   - Heatmaps show filtered row with orange background
 

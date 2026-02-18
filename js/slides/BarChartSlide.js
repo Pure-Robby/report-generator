@@ -116,7 +116,7 @@ class BarChartSlide extends SlideBase {
         // Add filtered dataset if available
         if (this.data.filtered && this.data.filtered.length > 0) {
             datasets.push({
-                label: 'Filtered Subset',
+                label: 'Filtered Report',
                 data: this.data.filtered,
                 backgroundColor: '#fb923c', // Orange for filtered
                 borderColor: chartBgColor,
@@ -262,7 +262,7 @@ class BarChartSlide extends SlideBase {
             legendHTML += `
                 <div class="chart-legend-item">
                     <div class="chart-legend-color orange"></div>
-                    <span>Filtered Subset</span>
+                    <span>Filtered Report</span>
                 </div>
             `;
         }

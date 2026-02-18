@@ -102,15 +102,15 @@ Then an employee must be:
 
 ### Methodology Slide
 Shows your filter criteria and the number of responses:
-> **Filtered Subset:** 127 responses matching Race: African | Gender: Male | Location: Uganda
+> **Filtered Report:** 127 responses matching Race: African | Gender: Male | Location: Uganda
 
 ### Satisfaction Slides
-The "FILTERED SUBSET" row appears immediately after "SEACOM ENGAGEMENT INDEX":
+The "FILTERED REPORT" row appears immediately after "SEACOM ENGAGEMENT INDEX":
 
 | Dimension | 2025 % Dissatisfied | 2025 % Satisfied |
 |-----------|---------------------|------------------|
 | SEACOM ENGAGEMENT INDEX | 15% | 85% |
-| **FILTERED SUBSET** | **20%** | **80%** |
+| **FILTERED REPORT** | **20%** | **80%** |
 | Cape Town | 12% | 88% |
 
 *(Filtered row has light orange background)*
@@ -121,15 +121,15 @@ Filtered data appears as **orange bars** alongside overall (blue) and previous y
 ```
         Overall (Blue) ████████ 75%
   Previous Year (Light Blue) ███████ 70%
-Filtered Subset (Orange) ██████ 65%
+Filtered Report (Orange) ██████ 65%
 ```
 
 ### Heatmap Slides
-The "FILTERED SUBSET" row appears after overall with light orange background:
+The "FILTERED REPORT" row appears after overall with light orange background:
 
 ```
 SEACOM ENGAGEMENT INDEX  n=444  75%  80%  72%  ...
-FILTERED SUBSET          n=127  70%  78%  68%  ...
+FILTERED REPORT          n=127  70%  78%  68%  ...
 Cape Town                n=150  72%  82%  70%  ...
 ```
 

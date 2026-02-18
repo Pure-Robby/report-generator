@@ -50,7 +50,7 @@ class SatisfactionSlide extends SlideBase {
         // Add filtered indicator if filtered data is being shown in the chart
         const hasFilteredData = this.data.filteredData && this.data.filteredData.overall;
         if (hasFilteredData) {
-            questionText.innerHTML = baseQuestion + '<br><small style="color: #f97316; font-weight: 600; margin-top: 8px; display: inline-block;">📊 Chart shows filtered subset data</small>';
+            questionText.innerHTML = baseQuestion + '<small style="color: #f97316; font-weight: 600;display: inline-block;">ℹ️ Chart shows filtered report data</small>';
         } else {
             questionText.textContent = baseQuestion;
         }
@@ -126,8 +126,7 @@ class SatisfactionSlide extends SlideBase {
         // Filtered row (if filter is active)
         if (this.data.filteredData && this.data.filteredData.overall) {
             const filteredRow = document.createElement('tr');
-            filteredRow.style.backgroundColor = '#fff7ed'; // Light orange background
-            filteredRow.style.fontWeight = '500';
+            filteredRow.className = 'filtered-report-row';
             
             const filteredCurrent = this.data.filteredData.overall;
             const filteredPrevious = (this.data.filteredPreviousData && this.data.filteredPreviousData.hasData) 
@@ -135,7 +134,7 @@ class SatisfactionSlide extends SlideBase {
                 : null;
             
             filteredRow.innerHTML = `
-                <td>FILTERED SUBSET</td>
+                <td>FILTERED REPORT</td>
                 <td>${filteredCurrent.dissatisfied}%</td>
                 <td>${filteredCurrent.satisfied}%</td>
                 <td>${filteredPrevious ? filteredPrevious.dissatisfied + '%' : ''}</td>

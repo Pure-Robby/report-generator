@@ -324,14 +324,14 @@ class HeatMapSlide extends SlideBase {
 
     createFilteredRow(filteredRow, showShiftIndicators) {
         const tr = document.createElement('tr');
-        tr.className = 'filtered-subset-row'; // Add class for CSS styling
+        tr.className = 'filtered-report-row'; // Add class for CSS styling
         
         const isInsufficientSample = Boolean(Number(filteredRow.sampleSize) <= 3);
         
         // Row header
         const rowHeader = document.createElement('th');
         rowHeader.className = 'row-header-cell';
-        rowHeader.textContent = 'FILTERED SUBSET';
+        rowHeader.textContent = 'FILTERED REPORT';
         tr.appendChild(rowHeader);
         
         // Sample size cell

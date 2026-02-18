@@ -15,8 +15,8 @@
 /* Chart Container - Fixed 16:9 ratio height */
 .chart-container {
   width: 100%;
-  max-width: 1150px;
-  height: 430px;
+  /* max-width: 1150px; */
+  height: 500px;
   position: relative;
   padding-bottom: 1rem;
 }
@@ -83,14 +83,15 @@
 .satisfaction-question {
   font-size: 0.95rem;
   color: #1e293b;
-  /* margin-bottom:0.5rem; */
+  display: flex;
+  justify-content: space-between;
   font-weight: 500;
 }
 
 /* Stacked Bar Chart Container */
 .stacked-chart-container {
   width: 100%;
-  max-width: 1100px;
+  /* max-width: 1100px; */
   height: 150px;
   position: relative;
   margin: 0 auto 0.75rem auto;

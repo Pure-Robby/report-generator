@@ -12,27 +12,27 @@
    - Dimension toggle checkboxes state restored on page load
    - Filter controls section visibility synced with checkbox state
 
-3. **Bar Chart Legend** - Added missing legend marker for filtered subset
+3. **Bar Chart Legend** - Added missing legend marker for filtered report
    - Orange legend item now appears when filtered data is displayed
    - Added `.chart-legend-color.orange` CSS class
 
 4. **Satisfaction Chart Display** - Updated stacked bar chart to show filtered data instead of overall
    - When filter is active, chart shows filtered current year vs filtered previous year
-   - Added orange indicator: "📊 Chart shows filtered subset data"
+   - Added orange indicator: "📊 Chart shows filtered report data"
    - Overall data still visible in table below
 
-5. **Pagination Math** - Fixed table row limits to account for filtered subset row
+5. **Pagination Math** - Fixed table row limits to account for filtered report row
    - Satisfaction tables: Account for 2 fixed rows (Overall + Filtered) when calculating breakdown rows
    - Heatmap Department tables: Updated maxRowsPerSlide calculation to include filtered row
    - Prevents content overflow on slides
 
 ### UX Improvements
-1. **Consistent Row Styling** - Applied same visual style to filtered subset rows as overall rows
+1. **Consistent Row Styling** - Applied same visual style to filtered report rows as overall rows
    - HeatMap: Filtered row now has orange highlight matching overall row's blue highlight
    - First two cells (name + sample size) have white text on orange background
-   - Added `.filtered-subset-row` class for consistent styling
+   - Added `.filtered-report-row` class for consistent styling
 
-2. **Filtered Row on All Pages** - Extended filtered subset row display to continuation pages
+2. **Filtered Row on All Pages** - Extended filtered report row display to continuation pages
    - Satisfaction - Department (Continued) now shows filtered row
    - All satisfaction slides now consistently display filtered data
 
@@ -52,8 +52,8 @@
 ## Known Issues & Future Work
 
 ### To Investigate
-- Risk Matrix slides: Do not currently show filtered subset rows
-- eNPS slides: Do not currently show filtered subset rows
+- Risk Matrix slides: Do not currently show filtered report rows
+- eNPS slides: Do not currently show filtered report rows
 - Consider adding filtered rows to these slides if needed
 
 ### Planned Enhancements (Phase 2)
@@ -76,7 +76,7 @@
 - `js/slides/HeatMapSlide.js` - Filtered row styling
 - `js/slideGenerator.js` - Pagination calculations for Satisfaction and HeatMap
 - `css/slides-charts.css` - Orange legend color
-- `css/slides-tables.css` - Filtered subset row styling
+- `css/slides-tables.css` - Filtered report row styling
 
 ---
 
@@ -86,8 +86,8 @@
 - [x] Page refresh preserves checkbox states
 - [x] Bar chart shows orange legend for filtered data
 - [x] Satisfaction chart displays filtered data when filter active
-- [x] Filtered subset row appears on all Satisfaction slides
-- [x] Filtered subset row has consistent styling (orange highlight)
+- [x] Filtered report row appears on all Satisfaction slides
+- [x] Filtered report row has consistent styling (orange highlight)
 - [x] HeatMap filtered row has matching overall row style
 - [x] Department pagination accounts for filtered row
 - [x] No content overflow on any slides

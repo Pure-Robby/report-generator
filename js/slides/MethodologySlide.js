@@ -58,8 +58,8 @@ class MethodologySlide extends SlideBase {
             
             const filterDescription = filterParts.join(' | ');
             
-            //filteredSection = `<p class="mb-3"><strong>Filtered Subset:</strong> ${this.data.filteredResponses} responses matching ${filterDescription}</p>`;
-            filteredSection = `<strong>Filtered Subset:</strong> ${this.data.filteredResponses} responses matching ${filterDescription}`;
+            //filteredSection = `<p class="mb-3"><strong>Filtered Report:</strong> ${this.data.filteredResponses} responses matching ${filterDescription}</p>`;
+            filteredSection = `<strong>Filtered Report:</strong> ${this.data.filteredResponses} responses matching ${filterDescription}`;
         }
         
         body.innerHTML = `

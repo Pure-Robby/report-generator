@@ -152,12 +152,14 @@ table thead th {
   font-weight: 500;
 }
 
-.satisfaction-table tbody tr:first-child {
+.satisfaction-table tbody tr:first-child,
+.satisfaction-table tbody tr.filtered-report-row {
   background-color: #e0e7ff;
   font-weight: 600;
 }
 
-.satisfaction-table tbody tr:first-child td {
+.satisfaction-table tbody tr:first-child td,
+.satisfaction-table tbody tr.filtered-report-row td {
   color: #fff;
   background: var(--secondary-color);
 }
@@ -377,8 +379,8 @@ table thead th {
   color: white !important;
 }
 
-/* Filtered subset row cell highlight (second row when filter is active) */
-.heatmap-table tbody tr.filtered-subset-row > *:nth-child(-n + 2) {
+/* Filtered report row cell highlight (second row when filter is active) */
+.heatmap-table tbody tr.filtered-report-row > *:nth-child(-n + 2) {
   background-color: #fb923c !important;
   color: white !important;
   font-weight: 600;
